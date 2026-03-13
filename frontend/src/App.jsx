@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import LandingPage from './pages/LandingPage';
 import ImageUpload from './components/ImageUpload';
 import LoadingSpinner from './components/LoadingSpinner';
 import ReportViewer from './components/ReportViewer';
 import FakeNewsPage from './components/FakeNewsPage';
 import ReceiptVerificationPage from './components/ReceiptVerificationPage';
-import Dither from './components/background/Dither';
 
 function App() {
-  const [page, setPage] = useState('landing'); // 'landing' or 'app'
   const [activeTab, setActiveTab] = useState('ai-detection');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -38,68 +35,41 @@ function App() {
     setError(null);
   };
 
-  const goToApp = () => {
-    setPage('app');
-    window.scrollTo(0, 0);
-  };
-
-  const goToLanding = () => {
-    setPage('landing');
-    window.scrollTo(0, 0);
-  };
-
-  // ── Landing Page ────────────────────────────────────────────────────
-  if (page === 'landing') {
-    return <LandingPage onTryNow={goToApp} />;
-  }
-
-  // ── Functional App ──────────────────────────────────────────────────
   return (
-    <div className="relative min-h-screen text-white font-[Inter] selection:bg-cyan-500/30">
-      {/* Background Layer */}
-      <Dither />
-      
-      {/* App Content */}
-      <div className="relative z-10">
-        <header className="border-b border-white/10 bg-[#040816]/60 backdrop-blur-2xl sticky top-0 z-50 shadow-2xl">
-          <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <button onClick={goToLanding} className="flex items-center gap-3 group">
-            <img 
-              src="/asset/logo.png" 
-              alt="Phantom AI Logo" 
-              className="w-12 h-12 object-contain group-hover:drop-shadow-[0_0_12px_rgba(34,211,238,0.5)] transition-all duration-300"
-            />
-            <h1 className="text-xl font-bold tracking-tight text-white">
-              PHANTOM <span className="text-slate-400 font-normal">AI</span>
-            </h1>
-          </button>
+    <div className="min-h-screen bg-gray-950 text-white font-sans selection:bg-blue-500/30">
+      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-md sticky top-0 z-50">
+        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">PhantomProof</h1>
+          </div>
           <nav>
-            <span className="text-sm font-medium text-slate-400">Verification System</span>
+            <span className="text-sm font-medium text-gray-400">Image Verification System</span>
           </nav>
         </div>
       </header>
 
-      <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-dither-fade-in relative z-10">
+      <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation Toggle */}
-        <div className="flex justify-center mb-12 w-full">
-          <div className="glass-toggle-container max-w-2xl">
+        <div className="flex justify-center mb-10 w-full overflow-x-auto">
+          <div className="bg-gray-900 border border-gray-800 rounded-full p-1.5 inline-flex shadow-xl whitespace-nowrap min-w-max">
             <button 
               onClick={() => setActiveTab('fake-news')} 
-              className={`glass-toggle-btn ${activeTab === 'fake-news' ? 'glass-toggle-btn-active' : ''}`}
+              className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeTab === 'fake-news' ? 'bg-purple-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
             >
               Fake News
             </button>
             <button 
               onClick={() => setActiveTab('ai-detection')} 
-              className={`glass-toggle-btn ${activeTab === 'ai-detection' ? 'glass-toggle-btn-active' : ''}`}
+              className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeTab === 'ai-detection' ? 'bg-blue-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
             >
-              Deepfake AI
+              AI Detection
             </button>
             <button 
               onClick={() => setActiveTab('fake-receipt')} 
-              className={`glass-toggle-btn ${activeTab === 'fake-receipt' ? 'glass-toggle-btn-active' : ''}`}
+              className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeTab === 'fake-receipt' ? 'bg-emerald-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
             >
-              Payment Receipt
+              Fake Receipt
             </button>
           </div>
         </div>
@@ -110,9 +80,9 @@ function App() {
 
         {activeTab === 'ai-detection' && (
           <div className="animate-in fade-in duration-500">
-            <div className="text-center max-w-4xl mx-auto mb-12">
-              <h2 className="text-4xl font-extrabold tracking-tight sm:text-6xl mb-4 text-glow-base">Deepfake & Manipulation Detector</h2>
-              <p className="text-lg text-slate-300 max-w-2xl mx-auto">Upload any image to verify its authenticity. Our advanced AI scans for digital tampering, deepfake traces, and corroborates OSINT data.</p>
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <h2 className="text-4xl font-extrabold tracking-tight sm:text-5xl mb-4">Deepfake & Manipulation Detector</h2>
+              <p className="text-lg text-gray-400">Upload any image to verify its authenticity. Our advanced AI scans for digital tampering, deepfake traces, and corroborates OSINT data.</p>
             </div>
 
             {!loading && !result && (
@@ -138,7 +108,7 @@ function App() {
             <div className="text-center">
               <button
                 onClick={handleReset}
-                className="glass-button px-8 py-3 w-full max-w-xs shadow-xl"
+                className="px-6 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors shadow-sm border border-gray-700 hover:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 Analyze Another Image
               </button>
@@ -148,7 +118,6 @@ function App() {
           </div>
         )}
       </main>
-      </div>
     </div>
   );
 }
