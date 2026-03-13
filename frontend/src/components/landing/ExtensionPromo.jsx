@@ -51,9 +51,9 @@ export default function ExtensionPromo() {
                   href="https://github.com/VishwasSharma28/TeamTryhardsPhantomProof/blob/main/backend/extension_implementations.md"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="glass-button-primary px-8 py-4 group inline-flex items-center justify-center"
+                  className="glass-button-primary px-8 py-4 group inline-flex items-center justify-center transition-all duration-300 hover:bg-cyan-500/80 hover:border-cyan-400 hover:shadow-[0_0_40px_rgba(34,211,238,0.8)] hover:scale-105"
                 >
-                  <span className="relative z-10 flex items-center gap-2">
+                  <span className="relative z-10 flex items-center gap-2 group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,1)]">
                     Get Extension
                     <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
