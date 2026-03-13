@@ -13,7 +13,7 @@ import SocialCommunity from "../components/landing/SocialCommunity";
 import ExtensionPromo from "../components/landing/ExtensionPromo";
 import Footer from "../components/landing/Footer";
 
-export default function LandingPage({ onTryNow }) {
+export default function LandingPage({ onTryNow, onCommunity }) {
   // ── Lenis Smooth Scroll ──────────────────────────────────────────────
   useEffect(() => {
     const lenis = new Lenis({
@@ -41,7 +41,7 @@ export default function LandingPage({ onTryNow }) {
       <ServicesGrid />
       <TrustSection />
       <Reviews />
-      <SocialCommunity />
+      <SocialCommunity onCommunity={onCommunity} />
       <ExtensionPromo />
       <Footer />
     </div>

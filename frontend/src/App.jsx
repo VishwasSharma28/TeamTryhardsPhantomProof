@@ -5,6 +5,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import ReportViewer from './components/ReportViewer';
 import FakeNewsPage from './components/FakeNewsPage';
 import ReceiptVerificationPage from './components/ReceiptVerificationPage';
+import CommunityFeedPage from './pages/CommunityFeedPage';
 import Dither from './components/background/Dither';
 
 function App() {
@@ -48,9 +49,30 @@ function App() {
     window.scrollTo(0, 0);
   };
 
-  // ── Landing Page ────────────────────────────────────────────────────
+  const goToCommunity = () => {
+    setPage('community');
+    window.scrollTo(0, 0);
+  };
+
+  const goToLandingWithHash = (hash) => {
+    setPage('landing');
+    // Give the LandingPage a moment to mount its sections before scrolling
+    setTimeout(() => {
+      const element = document.querySelector(hash);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        window.scrollTo(0, 0);
+      }
+    }, 100);
+  };
+
   if (page === 'landing') {
-    return <LandingPage onTryNow={goToApp} />;
+    return <LandingPage onTryNow={goToApp} onCommunity={goToCommunity} />;
+  }
+
+  if (page === 'community') {
+    return <CommunityFeedPage onNavigateHome={goToLandingWithHash} onTryNow={goToApp} />;
   }
 
   // ── Functional App ──────────────────────────────────────────────────

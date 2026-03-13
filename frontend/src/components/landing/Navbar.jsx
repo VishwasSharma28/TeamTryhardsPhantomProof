@@ -11,7 +11,7 @@ const navLinks = [
 
 const ease = [0.22, 1, 0.36, 1];
 
-export default function Navbar({ onTryNow }) {
+export default function Navbar({ onTryNow, onNavigateHome }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [lang, setLang] = useState("EN");
@@ -28,6 +28,9 @@ export default function Navbar({ onTryNow }) {
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
       setMobileOpen(false);
+    } else if (onNavigateHome) {
+      setMobileOpen(false);
+      onNavigateHome(href);
     }
   };
 

@@ -4,7 +4,7 @@ import { useRef } from "react";
 const ease = [0.22, 1, 0.36, 1];
 
 
-export default function SocialCommunity() {
+export default function SocialCommunity({ onCommunity }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
@@ -81,15 +81,18 @@ export default function SocialCommunity() {
                 {/* Intense Outer Glow Aura */}
                 <div className="absolute -inset-4 bg-white/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
-                <a
-                  href="#"
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onCommunity?.();
+                  }}
                   className="relative z-10 glass-button-primary px-10 py-5 group flex items-center gap-3 bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] transition-all duration-500 rounded-full text-lg font-semibold"
                 >
                   <span className="relative z-10 text-white">Join the Community</span>
                   <svg className="relative z-10 w-5 h-5 text-white group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
-                </a>
+                </button>
               </motion.div>
             </div>
           </div>
