@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import ImageUpload from './components/ImageUpload';
 import LoadingSpinner from './components/LoadingSpinner';
 import ReportViewer from './components/ReportViewer';
+import FakeNewsPage from './components/FakeNewsPage';
+import ReceiptVerificationPage from './components/ReceiptVerificationPage';
 
 function App() {
+  const [activeTab, setActiveTab] = useState('ai-detection');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
@@ -46,19 +49,49 @@ function App() {
         </div>
       </header>
 
-      <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="text-4xl font-extrabold tracking-tight sm:text-5xl mb-4">Deepfake & Manipulation Detector</h2>
-          <p className="text-lg text-gray-400">Upload any image to verify its authenticity. Our advanced AI scans for digital tampering, deepfake traces, and corroborates OSINT data.</p>
+      <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Navigation Toggle */}
+        <div className="flex justify-center mb-10 w-full overflow-x-auto">
+          <div className="bg-gray-900 border border-gray-800 rounded-full p-1.5 inline-flex shadow-xl whitespace-nowrap min-w-max">
+            <button 
+              onClick={() => setActiveTab('fake-news')} 
+              className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeTab === 'fake-news' ? 'bg-purple-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+            >
+              Fake News
+            </button>
+            <button 
+              onClick={() => setActiveTab('ai-detection')} 
+              className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeTab === 'ai-detection' ? 'bg-blue-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+            >
+              AI Detection
+            </button>
+            <button 
+              onClick={() => setActiveTab('fake-receipt')} 
+              className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeTab === 'fake-receipt' ? 'bg-emerald-600 shadow-md text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+            >
+              Fake Receipt
+            </button>
+          </div>
         </div>
 
-        {!loading && !result && (
-          <ImageUpload
-            onUploadStart={handleUploadStart}
-            onUploadSuccess={handleUploadSuccess}
-            onUploadError={handleUploadError}
-          />
-        )}
+        {activeTab === 'fake-news' && <FakeNewsPage />}
+
+        {activeTab === 'fake-receipt' && <ReceiptVerificationPage />}
+
+        {activeTab === 'ai-detection' && (
+          <div className="animate-in fade-in duration-500">
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <h2 className="text-4xl font-extrabold tracking-tight sm:text-5xl mb-4">Deepfake & Manipulation Detector</h2>
+              <p className="text-lg text-gray-400">Upload any image to verify its authenticity. Our advanced AI scans for digital tampering, deepfake traces, and corroborates OSINT data.</p>
+            </div>
+
+            {!loading && !result && (
+              <ImageUpload
+                onUploadStart={handleUploadStart}
+                onUploadSuccess={handleUploadSuccess}
+                onUploadError={handleUploadError}
+              />
+            )}
 
         {loading && <LoadingSpinner />}
 
@@ -80,6 +113,8 @@ function App() {
                 Analyze Another Image
               </button>
             </div>
+          </div>
+        )}
           </div>
         )}
       </main>
