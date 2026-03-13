@@ -63,6 +63,122 @@ const FakeNewsPage = () => {
     if (e.dataTransfer.files?.[0]) handleFile(e.dataTransfer.files[0]);
   };
 
+  const downloadReport = () => {
+    if (!result) return;
+    const vc = verdictConfig[result?.verdict] || verdictConfig['UNVERIFIED'];
+    const langMap = { hi: 'Hindi', ta: 'Tamil', te: 'Telugu', kn: 'Kannada', ml: 'Malayalam', bn: 'Bengali', en: 'English' };
+    const langName = langMap[result.language_detected] || result.language_detected || 'English';
+    const now = new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
+
+    const modelsHtml = (result.models_used || []).map(m =>
+      `<div style="padding:8px 12px;background:#f8f9fa;border-radius:6px;border-left:3px solid #7c3aed;margin-bottom:6px;font-size:13px;color:#374151;">${m}</div>`
+    ).join('');
+
+    const sourcesHtml = (result.matched_sources || []).length > 0
+      ? result.matched_sources.map(s => `<span style="display:inline-block;background:#eff6ff;color:#1d4ed8;padding:4px 12px;border-radius:20px;font-size:12px;margin:3px 4px;border:1px solid #bfdbfe;">🔗 ${s}</span>`).join('')
+      : '<p style="color:#9ca3af;font-style:italic;font-size:13px;">No matching sources found in fact-check databases.</p>';
+
+    const verdictColors = {
+      VERIFIED: { bg: '#f0fdf4', border: '#16a34a', text: '#15803d' },
+      TRUE: { bg: '#f0fdf4', border: '#16a34a', text: '#15803d' },
+      UNVERIFIED: { bg: '#fffbeb', border: '#d97706', text: '#b45309' },
+      SUSPICIOUS: { bg: '#fff7ed', border: '#ea580c', text: '#c2410c' },
+      FALSE: { bg: '#fef2f2', border: '#dc2626', text: '#b91c1c' },
+      SCAM: { bg: '#fef2f2', border: '#dc2626', text: '#b91c1c' },
+    };
+    const vColors = verdictColors[result.verdict] || verdictColors['UNVERIFIED'];
+
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>PHANTOMPROOF — Fake News Report</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:#fff; color:#1f2937; padding:40px; max-width:800px; margin:0 auto; }
+  .header { text-align:center; border-bottom:2px solid #e5e7eb; padding-bottom:24px; margin-bottom:28px; }
+  .header h1 { font-size:28px; font-weight:800; color:#7c3aed; letter-spacing:-0.5px; }
+  .header p { font-size:12px; color:#9ca3af; margin-top:6px; }
+  .verdict-box { padding:20px 24px; border-radius:12px; border-left:5px solid ${vColors.border}; background:${vColors.bg}; margin-bottom:24px; }
+  .verdict-box .label { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#6b7280; margin-bottom:4px; }
+  .verdict-box .value { font-size:26px; font-weight:800; color:${vColors.text}; }
+  .verdict-box .tag { display:inline-block; font-size:11px; background:#f3e8ff; color:#7c3aed; padding:2px 10px; border-radius:12px; margin-top:6px; }
+  .section { margin-bottom:22px; }
+  .section-title { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#6b7280; margin-bottom:10px; font-weight:600; }
+  .card { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:16px; }
+  .ocr-text { font-family:'Courier New',monospace; font-size:13px; line-height:1.7; color:#374151; white-space:pre-wrap; background:#f3f4f6; padding:14px; border-radius:8px; max-height:200px; overflow-y:auto; }
+  .explanation { font-size:14px; line-height:1.7; color:#374151; }
+  .footer { text-align:center; margin-top:36px; padding-top:20px; border-top:1px solid #e5e7eb; font-size:11px; color:#9ca3af; }
+  .models-section { margin-top:6px; }
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media print { body { padding:20px; } }
+  @media (max-width:600px) { .two-col { grid-template-columns:1fr; } }
+</style></head><body>
+
+<div class="header">
+  <h1>🛡️ PHANTOMPROOF.ai</h1>
+  <p>Fake News Verification Report • Generated ${now}</p>
+</div>
+
+<div class="verdict-box">
+  <div class="label">Verdict</div>
+  <div class="value">${vc.icon} ${vc.label}</div>
+  ${result.translated ? '<div class="tag">🌐 Translated from regional language</div>' : ''}
+</div>
+
+${result.explanation ? `
+<div class="section">
+  <div class="section-title">Analysis</div>
+  <div class="card"><p class="explanation">${result.explanation}</p></div>
+</div>` : ''}
+
+<div class="two-col">
+  <div class="section">
+    <div class="section-title">Extracted Text (OCR)</div>
+    <div class="card">
+      <div class="ocr-text">${result.extracted_text || 'No text detected in image.'}</div>
+      <p style="margin-top:8px;font-size:12px;color:#6b7280;">Language: ${langName}</p>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Fact-Check Sources</div>
+    <div class="card">
+      ${sourcesHtml}
+      ${result.fingerprint_match ? `<div style="margin-top:12px;padding:8px 12px;background:#f3e8ff;border-radius:8px;font-size:12px;color:#7c3aed;"><strong>Known Pattern:</strong> ${result.fingerprint_match}</div>` : ''}
+      ${result.ml_confidence != null ? `<div style="margin-top:8px;display:flex;justify-content:space-between;padding:8px 12px;background:#f3f4f6;border-radius:8px;font-size:12px;color:#6b7280;"><span>RoBERTa ML Confidence</span><strong style="color:#1f2937;">${result.ml_confidence}%</strong></div>` : ''}
+    </div>
+  </div>
+</div>
+
+${modelsHtml ? `
+<div class="section">
+  <div class="section-title">🤖 Models & Techniques Used</div>
+  <div class="models-section">${modelsHtml}</div>
+</div>` : ''}
+
+<div class="section">
+  <div class="section-title">How It Works</div>
+  <div class="card" style="font-size:13px;line-height:1.8;color:#4b5563;">
+    ${result.translated ? '<p>🌐 <strong>Step 1:</strong> Non-English text was detected and automatically translated to English.</p>' : ''}
+    <p>📷 <strong>${result.translated ? 'Step 2' : 'Step 1'}:</strong> Text was extracted from the image using EasyOCR.</p>
+    <p>🧠 <strong>${result.translated ? 'Step 3' : 'Step 2'}:</strong> RoBERTa AI model analyzed the text for fake news patterns.</p>
+    <p>📡 <strong>${result.translated ? 'Step 4' : 'Step 3'}:</strong> Live databases from AltNews, BOOM, AFP, and PIB were searched.</p>
+    <p>🔍 <strong>${result.translated ? 'Step 5' : 'Step 4'}:</strong> Text was scanned for known scam and misinformation phrases.</p>
+  </div>
+</div>
+
+<div class="footer">
+  <p>PHANTOMPROOF.ai — AI-Powered Image Forensics & Fake News Detection</p>
+  <p style="margin-top:4px;">This report was auto-generated. Always verify critical claims from official sources.</p>
+</div>
+
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    setTimeout(() => {
+      win.print();
+    }, 600);
+  };
+
   const verdictConfig = {
     VERIFIED: { color: 'text-green-400', bg: 'bg-green-900/30 border-green-700/50', icon: '✅', label: 'Verified' },
     TRUE: { color: 'text-green-400', bg: 'bg-green-900/30 border-green-700/50', icon: '✅', label: 'Verified True' },
@@ -309,13 +425,22 @@ const FakeNewsPage = () => {
             </div>
           )}
 
-          {/* Analyze Another */}
-          <div className="text-center pt-4">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-center gap-4 pt-4">
             <button
               onClick={() => { setResult(null); setFile(null); setPreview(null); setError(null); }}
               className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors shadow-lg"
             >
               Analyze Another Image
+            </button>
+            <button
+              onClick={downloadReport}
+              className="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-white font-semibold rounded-xl transition-colors shadow-lg border border-gray-700 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download Report
             </button>
           </div>
         </div>
