@@ -3,9 +3,9 @@ import { Shield, Brain, Zap, Eye } from 'lucide-react';
 
 const AIDetectionCard = ({ aiDetection }) => {
     const colors = {
-        low: { bg: 'bg-emerald-500/90', ring: 'ring-emerald-400/50', icon: '🟢' },
-        med: { bg: 'bg-amber-500/90', ring: 'ring-amber-400/50', icon: '🟡' },
-        high: { bg: 'bg-red-500/90', ring: 'ring-red-400/50', icon: '🔴' }
+        low: { bg: 'bg-emerald-900/40', ring: 'border-emerald-500/50', icon: '🟢', text: 'text-emerald-400', shadow: 'shadow-emerald-500/20' },
+        med: { bg: 'bg-amber-900/40', ring: 'border-amber-500/50', icon: '🟡', text: 'text-amber-400', shadow: 'shadow-amber-500/20' },
+        high: { bg: 'bg-red-900/40', ring: 'border-red-500/50', icon: '🔴', text: 'text-red-400', shadow: 'shadow-red-500/20' }
     };
 
     const colorSet = aiDetection?.ai_confidence < 15 ? colors.low :
@@ -17,10 +17,10 @@ const AIDetectionCard = ({ aiDetection }) => {
         <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className={`relative p-8 rounded-3xl shadow-2xl border-4 ${colorSet.ring} ${colorSet.bg} backdrop-blur-xl text-white overflow-hidden`}
+            className={`relative p-8 rounded-3xl shadow-2xl border ${colorSet.ring} ${colorSet.bg} backdrop-blur-3xl text-white overflow-hidden ${colorSet.shadow}`}
         >
             {/* Animated background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/2 animate-pulse" />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent animate-pulse pointer-events-none" />
 
             <div className="relative flex items-start gap-6 mb-8">
                 <motion.div
@@ -35,13 +35,13 @@ const AIDetectionCard = ({ aiDetection }) => {
                 </motion.div>
 
                 <div className="flex-1 min-w-0">
-                    <h2 className="text-4xl font-black mb-4 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent tracking-tight">
+                    <h2 className="text-3xl font-black mb-3 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent tracking-tight">
                         AI Generation Detection
                     </h2>
-                    <div className="text-7xl font-mono font-black leading-none mb-4">
+                    <div className={`text-6xl font-mono font-black leading-none mb-3 ${colorSet.text}`}>
                         {aiDetection.ai_confidence}%
                     </div>
-                    <div className="text-xl font-semibold opacity-90 capitalize">
+                    <div className="text-lg font-semibold opacity-90 capitalize">
                         {aiDetection.ai_confidence < 15 && '✅ Authentic Photography'}
                         {aiDetection.ai_confidence > 85 && '🔴 Confirmed AI Generation'}
                         {aiDetection.ai_confidence >= 15 && aiDetection.ai_confidence <= 85 && '⚠️ Suspicious - Review Required'}
