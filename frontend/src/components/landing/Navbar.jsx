@@ -6,6 +6,7 @@ const navLinks = [
   { label: "Technology", href: "#about" },
   { label: "Why Us", href: "#why" },
   { label: "Community", href: "#community" },
+  { label: "Extension", href: "#extension" },
 ];
 
 const ease = [0.22, 1, 0.36, 1];

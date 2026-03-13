@@ -10,6 +10,7 @@ import ServicesGrid from "../components/landing/ServicesGrid";
 import TrustSection from "../components/landing/TrustSection";
 import Reviews from "../components/landing/Reviews";
 import SocialCommunity from "../components/landing/SocialCommunity";
+import ExtensionPromo from "../components/landing/ExtensionPromo";
 import Footer from "../components/landing/Footer";
 
 export default function LandingPage({ onTryNow }) {
@@ -41,6 +42,7 @@ export default function LandingPage({ onTryNow }) {
       <TrustSection />
       <Reviews />
       <SocialCommunity />
+      <ExtensionPromo />
       <Footer />
     </div>
   );
