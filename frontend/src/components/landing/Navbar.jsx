@@ -21,6 +21,15 @@ export default function Navbar({ onTryNow }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const handleScrollTo = (e, href) => {
+    e.preventDefault();
+    const element = document.querySelector(href);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+      setMobileOpen(false);
+    }
+  };
+
   return (
     <motion.nav
       initial={{ y: -100, opacity: 0 }}
@@ -40,6 +49,7 @@ export default function Navbar({ onTryNow }) {
             <a
               key={link.label}
               href={link.href}
+              onClick={(e) => handleScrollTo(e, link.href)}
               className="relative px-6 py-2.5 text-[14px] font-semibold text-slate-200 hover:text-white rounded-full hover:bg-white/20 hover:shadow-[0_0_25px_rgba(255,255,255,0.25)] transition-all duration-300 group hover:scale-105"
             >
               <span className="relative z-10 group-hover:drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">
@@ -81,7 +91,7 @@ export default function Navbar({ onTryNow }) {
                 <a
                   key={link.label}
                   href={link.href}
-                  onClick={() => setMobileOpen(false)}
+                  onClick={(e) => handleScrollTo(e, link.href)}
                   className="block px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors"
                 >
                   {link.label}
