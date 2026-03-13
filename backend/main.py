@@ -56,6 +56,9 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(router, prefix="")
 
+from routes.payment_scan import router as payment_router
+app.include_router(payment_router, prefix="")
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     uvicorn.run(
