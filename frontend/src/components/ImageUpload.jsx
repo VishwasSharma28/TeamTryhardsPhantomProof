@@ -46,7 +46,7 @@ const ImageUpload = ({ onUploadStart, onUploadSuccess, onUploadError }) => {
 
         try {
             // Unified Endpoint Call
-            const analyzeRes = await axios.post('http://localhost:8000/scan/', formData, {
+            const analyzeRes = await axios.post('http://localhost:8000/scan/image?lang=en', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 

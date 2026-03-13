@@ -185,14 +185,12 @@ export default function Scanner() {
                                         {results.authenticity_score ?? 'N/A'}<span className="text-3xl text-gray-500">%</span>
                                     </div>
                                 </div>
-                                <div className={`px-6 py-4 rounded-2xl flex items-center gap-3 border-2 ${(results.verdict || '').toUpperCase().includes('AUTHENTIC')
+                                <div className={`px-6 py-4 rounded-2xl flex items-center gap-3 border-2 ${(results.verdict || '').toUpperCase() === 'VERIFIED'
                                         ? 'border-green-500/50 bg-green-500/10 text-green-400 shadow-[0_0_30px_rgba(34,197,94,0.15)]'
-                                        : (results.verdict || '').toUpperCase().includes('SUSPICIOUS') || (results.verdict || '').toUpperCase().includes('POSSIBLE')
-                                           ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.15)]'
-                                           : 'border-red-500/50 bg-red-500/10 text-red-400 shadow-[0_0_30px_rgba(239,68,68,0.15)]'
+                                        : 'border-red-500/50 bg-red-500/10 text-red-400 shadow-[0_0_30px_rgba(239,68,68,0.15)]'
                                     }`}>
-                                    {(results.verdict || '').toUpperCase().includes('AUTHENTIC') ? <ShieldCheck className="w-8 h-8" /> : <ShieldAlert className="w-8 h-8" />}
-                                    <span className="text-2xl font-bold tracking-tight uppercase text-center">{results.verdict || 'UNKNOWN'}</span>
+                                    {(results.verdict || '').toUpperCase() === 'VERIFIED' ? <ShieldCheck className="w-8 h-8" /> : <ShieldAlert className="w-8 h-8" />}
+                                    <span className="text-2xl font-bold tracking-tight uppercase">{results.verdict || 'UNKNOWN'}</span>
                                 </div>
                             </div>
                             <button
@@ -204,88 +202,40 @@ export default function Scanner() {
                         </div>
                     </div>
 
-                    {/* Advanced View (Hackathon) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        
-                        {/* Left Column: Evidence & Timeline */}
-                        <div className="space-y-6">
-                            
-                            {/* Evidence Panel */}
-                            <div className="bg-[#14151a] border border-white/5 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
-                                    <ShieldAlert className="text-blue-400 w-5 h-5" />
-                                    <h4 className="text-lg font-semibold text-gray-200 uppercase tracking-widest">Why This Result?</h4>
-                                </div>
-                                <div className="space-y-4">
-                                    {results.explanations?.forensics?.map((msg, i) => (
-                                        <div key={`for-${i}`} className="flex gap-3 text-sm text-gray-300">
-                                            <Search className="w-5 h-5 text-teal-400 shrink-0" />
-                                            <p>{msg}</p>
-                                        </div>
-                                    ))}
-                                    {results.explanations?.claims?.map((msg, i) => (
-                                        <div key={`claim-${i}`} className="flex gap-3 text-sm text-gray-300">
-                                            <FileText className="w-5 h-5 text-purple-400 shrink-0" />
-                                            <p>{msg}</p>
-                                        </div>
-                                    ))}
-                                    <div className="mt-4 pt-4 border-t border-white/5 font-medium text-white flex gap-3">
-                                        <Brain className="w-5 h-5 text-blue-400 shrink-0" />
-                                        <p>{results.explanations?.conclusion}</p>
-                                    </div>
-                                </div>
+                    {/* Details Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Forensics */}
+                        <div className="bg-[#14151a] border border-white/5 rounded-3xl p-6 shadow-xl">
+                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+                                <Search className="text-teal-400 w-5 h-5" />
+                                <h4 className="text-lg font-semibold text-gray-200">Forensics</h4>
                             </div>
-
-                            {/* Timeline Engine */}
-                            <div className="bg-[#14151a] border border-white/5 rounded-3xl p-6 shadow-xl">
-                                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
-                                    <AlertTriangle className="text-teal-400 w-5 h-5" />
-                                    <h4 className="text-lg font-semibold text-gray-200 uppercase tracking-widest">Timeline Analysis</h4>
-                                </div>
-                                <div className="space-y-4 pl-2 border-l-2 border-white/10 ml-2">
-                                    {results.timeline?.map((item, idx) => (
-                                        <div key={idx} className="relative pl-6">
-                                            <div className="absolute w-3 h-3 bg-teal-500 rounded-full -left-[23px] top-1 shadow-[0_0_10px_rgba(20,184,166,0.5)]"></div>
-                                            <div className="font-bold text-teal-300 mb-1">{item.year}</div>
-                                            <div className="text-sm text-gray-400">{item.event}</div>
-                                        </div>
-                                    ))}
-                                    {!results.timeline && <p className="text-gray-500 text-sm">No historical footprint detected.</p>}
-                                </div>
-                            </div>
+                            <pre className="text-sm text-gray-400 overflow-auto whitespace-pre-wrap font-mono custom-scrollbar max-h-60">
+                                {results.forensics ? JSON.stringify(results.forensics, null, 2) : 'No forensic data'}
+                            </pre>
                         </div>
 
-                        {/* Right Column: Reality Score Breakdown */}
-                        <div className="bg-[#14151a] border border-white/5 rounded-3xl p-6 shadow-xl flex flex-col items-center">
-                            <h4 className="text-lg font-semibold text-gray-200 uppercase tracking-widest w-full text-center mb-2">Reality Score Breakdown</h4>
-                            <p className="text-sm text-gray-500 text-center mb-8">Component analysis of digital and semantic authenticity.</p>
-                            
-                            <div className="w-full space-y-6">
-                                {results.signals && Object.entries(results.signals).map(([key, value]) => (
-                                    <div key={key} className="w-full">
-                                        <div className="flex justify-between text-sm font-medium mb-1">
-                                            <span className="uppercase text-gray-400">{key === 'ela' ? 'Compression (ELA)' : key}</span>
-                                            <span className={value > 70 ? 'text-green-400' : value < 40 ? 'text-red-400' : 'text-yellow-400'}>{value}/100</span>
-                                        </div>
-                                        <div className="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden border border-white/5">
-                                            <div 
-                                                className={`h-2.5 rounded-full ${value > 70 ? 'bg-green-500' : value < 40 ? 'bg-red-500' : 'bg-yellow-500'}`} 
-                                                style={{ width: `${value}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                ))}
+                        {/* OCR */}
+                        <div className="bg-[#14151a] border border-white/5 rounded-3xl p-6 shadow-xl">
+                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+                                <FileText className="text-blue-400 w-5 h-5" />
+                                <h4 className="text-lg font-semibold text-gray-200">OCR Data</h4>
                             </div>
-                            
-                            <div className="mt-8 p-4 bg-white/5 rounded-2xl border border-white/10 text-center w-full">
-                                <span className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Overall Authenticity Context</span>
-                                <div className="text-sm text-gray-300">
-                                This Reality Score uses a weighted ensemble of pixel-level forensics, camera metadata validation, semantic scene understanding, and open-source intelligence correlation.
-                                </div>
-                            </div>
+                            <pre className="text-sm text-gray-400 overflow-auto whitespace-pre-wrap font-mono custom-scrollbar max-h-60">
+                                {results.ocr ? JSON.stringify(results.ocr, null, 2) : 'No OCR data'}
+                            </pre>
                         </div>
 
+                        {/* OSINT */}
+                        <div className="bg-[#14151a] border border-white/5 rounded-3xl p-6 shadow-xl">
+                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+                                <Brain className="text-purple-400 w-5 h-5" />
+                                <h4 className="text-lg font-semibold text-gray-200">OSINT</h4>
+                            </div>
+                            <pre className="text-sm text-gray-400 overflow-auto whitespace-pre-wrap font-mono custom-scrollbar max-h-60">
+                                {results.osint ? JSON.stringify(results.osint, null, 2) : 'No OSINT matches'}
+                            </pre>
+                        </div>
                     </div>
 
                     {/* Full Raw JSON (Optional debug view for Hackathon, collapsed normally but let's just make it visible if needed, or omit to keep UI clean) */}
