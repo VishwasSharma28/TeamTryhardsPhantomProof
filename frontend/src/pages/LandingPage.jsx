@@ -31,7 +31,7 @@ export default function LandingPage({ onTryNow }) {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-phantom-900 text-white font-[Inter] selection:bg-indigo-500/30 noise-overlay">
+    <div className="relative min-h-screen bg-phantom-900 text-white selection:bg-indigo-500/30 noise-overlay">
       <AnimatedBackground />
       <Navbar onTryNow={onTryNow} />
       <Hero onTryNow={onTryNow} />

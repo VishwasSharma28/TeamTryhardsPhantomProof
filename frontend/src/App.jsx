@@ -55,7 +55,7 @@ function App() {
 
   // ── Functional App ──────────────────────────────────────────────────
   return (
-    <div className="relative min-h-screen text-white font-[Inter] selection:bg-cyan-500/30">
+    <div className="relative min-h-screen text-white selection:bg-cyan-500/30">
       {/* Background Layer */}
       <Dither />
       
@@ -74,7 +74,15 @@ function App() {
             </h1>
           </button>
           <nav>
-            <span className="text-sm font-medium text-slate-400">Verification System</span>
+            <select className="bg-slate-900/80 border border-slate-700/50 text-slate-300 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block px-3 py-2 cursor-pointer outline-none hover:bg-slate-800 transition-colors">
+              <option value="en">English</option>
+              <option value="hi">Hindi (हिंदी)</option>
+              <option value="ta">Tamil (தமிழ்)</option>
+              <option value="te">Telugu (తెలుగు)</option>
+              <option value="bn">Bengali (বাংলা)</option>
+              <option value="ml">Malayalam (മലയാളം)</option>
+              <option value="kn">Kannada (ಕನ್ನಡ)</option>
+            </select>
           </nav>
         </div>
       </header>
@@ -93,7 +101,7 @@ function App() {
               onClick={() => setActiveTab('ai-detection')} 
               className={`glass-toggle-btn ${activeTab === 'ai-detection' ? 'glass-toggle-btn-active' : ''}`}
             >
-              Deepfake AI
+              Image Authenticity
             </button>
             <button 
               onClick={() => setActiveTab('fake-receipt')} 

@@ -45,7 +45,7 @@ export default function TrustSection() {
             </span>
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            Trust starts with openness. Every analysis provides full forensic breakdown.
+            Trust begins with transparency. Every analysis delivers a clear, detailed forensic breakdown you can understand and verify
           </p>
         </motion.div>
 

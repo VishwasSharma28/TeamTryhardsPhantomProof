@@ -59,12 +59,9 @@ const ImageUpload = ({ onUploadStart, onUploadSuccess, onUploadError }) => {
     };
 
     return (
-        <div className="w-full mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-4xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
             <div
-                className={`relative flex flex-col items-center justify-center w-full h-64 border border-dashed rounded-2xl transition-all duration-300 cursor-pointer backdrop-blur-xl ${dragActive
-                    ? 'border-white bg-white/10 shadow-lg shadow-white/20'
-                    : 'bg-slate-950/90 border-white/10 hover:bg-black hover:border-white/40 hover:shadow-[0_0_50px_rgba(255,255,255,0.15)]'
-                    }`}
+                className={`relative w-full border-2 border-dashed rounded-2xl transition-colors cursor-pointer mb-6 ${dragActive ? 'border-purple-500 bg-purple-500/10' : 'border-gray-700 bg-gray-900/50 hover:border-purple-400 hover:bg-gray-900'}`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -78,15 +75,16 @@ const ImageUpload = ({ onUploadStart, onUploadSuccess, onUploadError }) => {
                     accept="image/*"
                     onChange={handleChange}
                 />
-                {/* pointer-events-none stops child elements from stealing drag events */}
-                <div className="flex flex-col items-center justify-center p-6 text-center pointer-events-none">
-                    <svg className={`w-12 h-12 mb-4 transition-colors duration-300 ${dragActive ? 'text-cyan-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                    </svg>
-                    <p className="mb-2 text-sm text-slate-300">
-                        <span className="font-semibold text-cyan-400 tracking-wide">Click to upload</span> or drag and drop
+                <div className="flex flex-col items-center justify-center py-16 pointer-events-none">
+                    <div className="p-4 bg-purple-500/10 rounded-full mb-4">
+                        <svg className="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                    </div>
+                    <p className="text-gray-300 font-medium mb-1">
+                        <span className="text-purple-400 font-semibold">Click to upload</span> or drag and drop
                     </p>
-                    <p className="text-xs text-slate-500 tracking-wider">PNG, JPG or JPEG (Max 10MB)</p>
+                    <p className="text-xs text-gray-500">PNG, JPG, JPEG (Max 10MB)</p>
                 </div>
             </div>
 

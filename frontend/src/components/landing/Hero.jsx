@@ -66,7 +66,7 @@ export default function Hero({ onTryNow }) {
           transition={{ duration: 0.8, ease, delay: 0.75 }}
           className="text-base md:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed mb-12"
         >
-          AI-powered verification system detecting deepfakes,
+          AI-powered verification system detecting AI-generated content,
           misinformation, and manipulated media.
         </motion.p>
 
