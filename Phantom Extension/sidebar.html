@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhantomProof Sidebar</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Syne:wght@400..800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #080b12;
+            --bg-panel: #0d1120;
+            --bg-card: #111827;
+            --border: #1e2d45;
+            --accent: #3b82f6;
+            --green: #10b981;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --text-1: #f1f5f9;
+            --text-2: #94a3b8;
+            --text-3: #475569;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-1);
+            font-family: 'Syne', sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .mono { font-family: 'Space Mono', monospace; }
+
+        /* HEADER */
+        .header {
+            background-color: var(--bg-panel);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .logo-area { display: flex; align-items: center; }
+        .logo-img { height: 32px; width: auto; max-width: 200px; object-fit: contain; }
+
+        .header-actions { display: flex; gap: 12px; }
+        .btn-icon {
+            background: transparent; border: none; color: var(--text-2); cursor: pointer;
+            width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+            border-radius: 6px; transition: all 0.2s;
+        }
+        .btn-icon:hover { background-color: var(--bg-card); color: var(--text-1); }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .tab-btn {
+            flex: 1; background: transparent; color: var(--text-2); border: none;
+            border-bottom: 2px solid transparent; padding: 12px 0; font-size: 0.8rem;
+            font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Syne', sans-serif;
+        }
+        .tab-btn.active {
+            color: var(--accent); border-bottom: 2px solid var(--accent);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        /* CONFIG AREA */
+        .config-box { display: flex; gap: 8px; padding: 1rem 1.5rem 0 1.5rem;}
+        .input-url {
+            flex: 1; background-color: var(--bg-card); border: 1px solid var(--border);
+            color: var(--text-1); padding: 0.5rem; border-radius: 6px; font-size: 0.75rem;
+            outline: none; transition: border-color 0.2s;
+        }
+        .input-url:focus { border-color: var(--accent); }
+        .btn-small {
+            background-color: var(--bg-card); border: 1px solid var(--border); color: var(--text-1);
+            padding: 0 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        .btn-small:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* SCROLLABLE MAIN */
+        .main-content {
+            flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;
+        }
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-track { background: var(--bg-deep); }
+        .main-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .section-label {
+            font-size: 0.75rem; font-weight: 700; color: var(--text-3); letter-spacing: 1px;
+            margin-bottom: 0.5rem; text-transform: uppercase;
+        }
+
+        /* CAPTURE BLOCK */
+        .capture-placeholder {
+            border: 2px dashed var(--border); border-radius: 12px; padding: 2rem;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; gap: 12px; background: rgba(17, 24, 39, 0.5);
+            transition: border-color 0.2s;
+        }
+        .capture-placeholder:hover { border-color: var(--accent); background: rgba(59, 130, 246, 0.05); }
+
+        .snapshot-container {
+            position: relative; background-color: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; height: 200px; overflow: hidden; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        .snapshot-img { width: 100%; height: 100%; object-fit: contain; }
+        .retry-btn { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); border: 1px solid var(--border); }
+        .retry-btn:hover { background: var(--accent); border-color: var(--accent); }
+
+        /* BUTTONS */
+        .btn-primary {
+            width: 100%; background: linear-gradient(to right, var(--accent), #60a5fa); color: #fff;
+            border: none; padding: 1rem; border-radius: 12px; font-size: 0.95rem; font-weight: 800;
+            cursor: pointer; letter-spacing: 0.5px; display: flex; justify-content: center; align-items: center;
+            gap: 10px; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled {
+            opacity: 0.5; cursor: not-allowed; transform: none; background: var(--bg-card); filter: none;
+            color: var(--text-2); box-shadow: none; border: 1px solid var(--border);
+        }
+
+        .btn-spinner {
+            width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+            border-radius: 50%; animation: spin 1s linear infinite; display: none;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ERROR BOX */
+        .error-box {
+            background-color: rgba(239, 68, 68, 0.1); border: 1px solid var(--red);
+            border-radius: 8px; padding: 1rem; color: #fca5a5; display: none;
+            font-size: 0.85rem; word-break: break-all; margin-top: 1rem;
+        }
+
+        /* RESULT CARD STYLES */
+        .result-card {
+            background-color: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden; animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .verdict-banner {
+            padding: 1rem; text-align: center; font-weight: 800; font-size: 1.1rem;
+            letter-spacing: 1px; border-bottom: 1px solid var(--border);
+        }
+        .verdict-banner.genuine { background-color: rgba(16, 185, 129, 0.1); color: var(--green); }
+        .verdict-banner.suspicious { background-color: rgba(245, 158, 11, 0.1); color: var(--yellow); }
+        .verdict-banner.fraud { background-color: rgba(239, 68, 68, 0.1); color: var(--red); }
+
+        .score-section { padding: 1.25rem; border-bottom: 1px solid var(--border); }
+        .score-header { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+        .score-val { font-weight: 800; font-size: 1.1rem; }
+        .progress-bg { height: 8px; background-color: var(--bg-deep); border-radius: 4px; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0%; border-radius: 4px; transition: width 1s cubic-bezier(0.22, 1, 0.36, 1); }
+
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background-color: var(--border); }
+        .data-grid.single { grid-template-columns: 1fr; }
+        .data-cell { background-color: var(--bg-card); padding: 1rem; }
+        .data-label { font-size: 0.7rem; color: var(--text-2); margin-bottom: 0.25rem; text-transform: uppercase; }
+        .data-value { font-size: 0.95rem; font-weight: 600; word-break: break-word; }
+
+        .dynamic-list { padding: 1rem; }
+        .list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.5rem 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .list-val { font-weight: 700; }
+
+        .pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; background: var(--border); color: var(--text-1); margin: 2px;}
+
+        /* FOOTER */
+        .footer {
+            background-color: var(--bg-panel); padding: 0.75rem 1.5rem; display: flex;
+            justify-content: space-between; align-items: center; border-top: 1px solid var(--border);
+            flex-shrink: 0; font-size: 0.75rem; color: var(--text-3);
+        }
+        .status-dot {
+            width: 8px; height: 8px; background-color: var(--green); border-radius: 50%;
+            box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .color-green { color: var(--green); }
+        .color-yellow { color: var(--yellow); }
+        .color-red { color: var(--red); }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo-area">
+            <img class="logo-img" src="icons/logo_full.png" alt="PhantomProof">
+        </div>
+        <div class="header-actions">
+            <button id="btn-close" class="btn-icon" title="Close Sidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-mode="payment">Payment</button>
+        <button class="tab-btn" data-mode="deepfake">Deepfake AI</button>
+        <button class="tab-btn" data-mode="fakenews">Fake News</button>
+    </div>
+
+    <div class="config-box">
+        <input type="text" id="backend-url" class="input-url mono" value="http://localhost:8000">
+        <button id="btn-save-url" class="btn-small">SAVE</button>
+    </div>
+
+    <main class="main-content">
+        
+        <div id="capture-placeholder" class="capture-placeholder">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.8"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <p style="color:var(--text-3); font-size:0.85rem;">Capture an area on the page to analyze.</p>
+            <button id="btn-start-crop" class="btn-primary" style="padding: 0.75rem 1.5rem; width: auto; box-shadow: none;">Select Scan Area</button>
+        </div>
+
+        <div class="snapshot-container" id="snapshot-box" style="display:none;">
+            <img id="snapshot-img" class="snapshot-img" src="" alt="Screenshot">
+            <button id="btn-retake" class="btn-small retry-btn">Cancel / Retake</button>
+        </div>
+
+        <button id="btn-analyze" class="btn-primary" disabled>
+            <div class="btn-spinner" id="analyze-spinner"></div>
+            <span id="analyze-text">RUN FRAUD ANALYSIS</span>
+        </button>
+
+        <div id="error-box" class="error-box mono"></div>
+
+        <div id="dynamic-result-container"></div>
+
+    </main>
+
+    <footer class="footer">
+        <div class="mono">PHANTOMPROOF AI v1.5</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span>ACTIVE</span>
+            <div class="status-dot"></div>
+        </div>
+    </footer>
+
+    <script src="sidebar.js"></script>
+</body>
+</html>

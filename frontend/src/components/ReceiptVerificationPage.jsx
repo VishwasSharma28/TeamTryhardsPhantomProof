@@ -62,7 +62,8 @@ const ReceiptVerificationPage = () => {
       setResult(response.data.payment_analysis);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Failed to scan the payment receipt.');
+      const backendError = err.response?.data?.error || err.response?.data?.detail || err.message;
+      setError(`Failed to scan the payment receipt: ${backendError}`);
     } finally {
       setLoading(false);
     }
