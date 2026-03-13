@@ -12,6 +12,7 @@ export default function Hero({ onTryNow }) {
 
   const y = useTransform(scrollYProgress, [0, 1], [0, 150]);
   const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.7], [1, 0.9]);
 
   return (
     <section
@@ -20,7 +21,7 @@ export default function Hero({ onTryNow }) {
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
     >
       <motion.div
-        style={{ y, opacity }}
+        style={{ y, opacity, scale }}
         className="relative z-10 max-w-7xl mx-auto px-8 w-full text-center pt-28 pb-28"
       >
         {/* Badge */}
@@ -28,12 +29,13 @@ export default function Hero({ onTryNow }) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease, delay: 0.2 }}
-          className="glass-badge mb-10 inline-flex items-center gap-2"
+          className="mb-10 flex justify-center"
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-          <span className="text-xs font-semibold tracking-wider text-slate-300 uppercase">
-            Now available — v2.0
-          </span>
+          <img 
+            src="/asset/logo.png" 
+            alt="Phantom AI Logo" 
+            className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-[0_0_30px_rgba(34,211,238,0.3)] hover:scale-105 transition-transform duration-500"
+          />
         </motion.div>
 
         {/* Title */}

@@ -1,4 +1,4 @@
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
 
 const ease = [0.22, 1, 0.36, 1];
@@ -41,9 +41,20 @@ export default function Reviews() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [hoveredIndex, setHoveredIndex] = useState(null);
 
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+
+  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.8], [1, 0.95]);
+
   return (
     <section ref={ref} className="relative py-28 lg:py-36 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-8">
+      <motion.div 
+        style={{ opacity, scale }}
+        className="max-w-7xl mx-auto px-8"
+      >
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -74,7 +85,7 @@ export default function Reviews() {
               onMouseLeave={() => setHoveredIndex(null)}
               className={`glass-panel p-7 transition-all duration-500 cursor-default ${
                 hoveredIndex === i
-                  ? "bg-white/[0.07] border-cyan-400/20 shadow-xl shadow-cyan-500/5 -translate-y-1 scale-[1.02]"
+                  ? "bg-white/10 border-white/40 shadow-[0_0_40px_rgba(255,255,255,0.15)] -translate-y-1 scale-[1.05]"
                   : ""
               } ${i === 3 ? "lg:col-span-2" : ""}`}
             >
@@ -107,7 +118,7 @@ export default function Reviews() {
             </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

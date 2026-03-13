@@ -1,4 +1,4 @@
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 
 const ease = [0.22, 1, 0.36, 1];
@@ -12,8 +12,8 @@ const cards = [
     ),
     title: "Multi-layer AI Verification",
     description: "Ensemble of 5+ AI models running ELA, CLIP, metadata, and pixel-level forensics simultaneously.",
-    accent: "from-cyan-400/20 to-blue-500/10",
-    border: "hover:border-cyan-400/30",
+    accent: "from-white/20 to-white/5",
+    border: "hover:border-white/50",
   },
   {
     icon: (
@@ -22,9 +22,9 @@ const cards = [
       </svg>
     ),
     title: "Multilingual Content Analysis",
-    description: "Supports 50+ languages with OCR and NLP, making global verification seamless.",
-    accent: "from-blue-500/20 to-emerald-500/10",
-    border: "hover:border-blue-400/30",
+    description: "Supports 10+ languages with OCR and NLP, making global verification seamless.",
+    accent: "from-white/20 to-white/5",
+    border: "hover:border-white/50",
   },
   {
     icon: (
@@ -34,8 +34,8 @@ const cards = [
     ),
     title: "Transparent & Explainable",
     description: "Every decision is interpretable — full forensic breakdown with evidence you can trust.",
-    accent: "from-emerald-500/20 to-cyan-500/10",
-    border: "hover:border-emerald-400/30",
+    accent: "from-white/20 to-white/5",
+    border: "hover:border-white/50",
   },
   {
     icon: (
@@ -45,8 +45,8 @@ const cards = [
     ),
     title: "Reliable Authenticity Scoring",
     description: "Weighted 5-signal scoring algorithm calibrated for courtroom-grade accuracy.",
-    accent: "from-cyan-500/20 to-blue-500/10",
-    border: "hover:border-cyan-400/30",
+    accent: "from-white/20 to-white/5",
+    border: "hover:border-white/50",
   },
 ];
 
@@ -54,9 +54,20 @@ export default function WhyPhantom() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+
+  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.8], [1, 0.95]);
+
   return (
     <section id="why" ref={ref} className="relative py-28 lg:py-36">
-      <div className="max-w-7xl mx-auto px-8">
+      <motion.div 
+        style={{ opacity, scale }}
+        className="max-w-7xl mx-auto px-8"
+      >
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -87,11 +98,11 @@ export default function WhyPhantom() {
               initial={{ opacity: 0, y: 40 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.7, ease, delay: 0.15 + i * 0.1 }}
-              className={`glass-panel p-6 group hover:scale-[1.03] ${card.border} transition-all duration-500 cursor-default`}
+              className={`glass-panel p-6 group hover:scale-[1.05] ${card.border} hover:bg-white/10 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] transition-all duration-500 cursor-default`}
             >
               <div className="flex gap-4">
                 <div
-                  className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${card.accent} flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform duration-500`}
+                  className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${card.accent} flex items-center justify-center text-white group-hover:scale-110 group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.8)] transition-all duration-500`}
                 >
                   {card.icon}
                 </div>
@@ -107,7 +118,7 @@ export default function WhyPhantom() {
             </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

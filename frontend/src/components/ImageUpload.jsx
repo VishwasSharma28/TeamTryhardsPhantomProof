@@ -61,9 +61,9 @@ const ImageUpload = ({ onUploadStart, onUploadSuccess, onUploadError }) => {
     return (
         <div className="w-full mx-auto mt-8 px-4 sm:px-6 lg:px-8">
             <div
-                className={`relative flex flex-col items-center justify-center w-full h-64 border border-dashed rounded-2xl transition-all duration-300 cursor-pointer ${dragActive
-                    ? 'border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
-                    : 'glass-panel hover:bg-white/5 hover:border-cyan-400/50 hover:shadow-cyan-500/10'
+                className={`relative flex flex-col items-center justify-center w-full h-64 border border-dashed rounded-2xl transition-all duration-300 cursor-pointer backdrop-blur-xl ${dragActive
+                    ? 'border-white bg-white/10 shadow-lg shadow-white/20'
+                    : 'bg-slate-950/90 border-white/10 hover:bg-black hover:border-white/40 hover:shadow-[0_0_50px_rgba(255,255,255,0.15)]'
                     }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}

@@ -1,11 +1,11 @@
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 
 const ease = [0.22, 1, 0.36, 1];
 
 const stats = [
   { value: "99.7%", label: "Detection Accuracy" },
-  { value: "< 3s", label: "Analysis Time" },
+  { value: "< 30s", label: "Analysis Time" },
   { value: "50+", label: "AI Models" },
   { value: "24/7", label: "Monitoring" },
 ];
@@ -14,9 +14,20 @@ export default function AboutSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+
+  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.8], [1, 0.95]);
+
   return (
     <section id="about" ref={ref} className="relative py-28 lg:py-36">
-      <div className="max-w-7xl mx-auto px-8">
+      <motion.div 
+        style={{ opacity, scale }}
+        className="max-w-7xl mx-auto px-8"
+      >
         {/* Section Label */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -62,9 +73,9 @@ export default function AboutSection() {
               initial={{ opacity: 0, y: 40 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.7, ease, delay: 0.3 + i * 0.1 }}
-              className="glass-panel p-6 lg:p-8 text-center group hover:bg-white/[0.06] hover:border-cyan-400/20 hover:scale-[1.03] transition-all duration-500"
+              className="glass-panel p-6 lg:p-8 text-center group hover:bg-white/10 hover:border-white/40 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:scale-[1.05] transition-all duration-500 cursor-default"
             >
-              <div className="text-3xl md:text-4xl lg:text-5xl font-bold gradient-text-accent mb-2 text-glow-cyan">
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-all duration-300">
                 {stat.value}
               </div>
               <div className="text-xs md:text-sm text-slate-500 font-medium uppercase tracking-wide">
@@ -81,7 +92,7 @@ export default function AboutSection() {
           transition={{ duration: 1.2, ease, delay: 0.8 }}
           className="mt-28 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent origin-center"
         />
-      </div>
+      </motion.div>
     </section>
   );
 }
