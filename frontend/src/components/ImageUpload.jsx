@@ -59,7 +59,7 @@ const ImageUpload = ({ onUploadStart, onUploadSuccess, onUploadError }) => {
     };
 
     return (
-        <div className="w-full max-w-2xl mx-auto mt-8">
+        <div className="w-full mx-auto mt-8 px-4 sm:px-6 lg:px-8">
             <div
                 className={`relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-xl transition-colors cursor-pointer ${dragActive
                     ? 'border-blue-500 bg-blue-500/10'

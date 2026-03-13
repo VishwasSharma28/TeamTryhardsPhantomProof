@@ -170,7 +170,7 @@ def generate_pdf_report(data: dict[str, Any]) -> bytes:
     # ── SECTION 2 — Verdict Banner ───────────────────────────────────────────
     score: float = float(data.get("authenticity_score", 50))
     verdict: str = str(data.get("verdict", "UNVERIFIED"))
-    risk: str = str(data.get("risk_level", "MEDIUM"))
+    risk: str = str(data.get("risk_level", "UNKNOWN"))
 
     if score > 70:
         banner_color = GREEN_BANNER
@@ -187,7 +187,7 @@ def generate_pdf_report(data: dict[str, Any]) -> bytes:
         alignment=TA_CENTER,
     )
     banner_table = Table(
-        [[Paragraph(f"VERDICT: {verdict}   |   RISK: {risk}", banner_style)]],
+        [[Paragraph(f"VERDICT: {verdict}   |   CONFIDENCE: {round(score,1)}%", banner_style)]],
         colWidths=["100%"],
     )
     banner_table.setStyle(TableStyle([
@@ -201,20 +201,25 @@ def generate_pdf_report(data: dict[str, Any]) -> bytes:
     story.append(banner_table)
     story.append(Spacer(1, 0.4 * cm))
 
+    # ── SECTION 2.5 — Executive Summary ──────────────────────────────────────
+    exec_sum: str = data.get("executive_summary", "")
+    if exec_sum:
+        story.append(Paragraph("EXECUTIVE SUMMARY", st["section_heading"]))
+        story.append(Paragraph(exec_sum, st["grey_box"]))
+        story.append(Spacer(1, 0.3 * cm))
+
     # ── SECTION 3 — Authenticity Score ──────────────────────────────────────
-    story.append(Paragraph("AUTHENTICITY SCORE", st["section_heading"]))
-    story.append(Paragraph(f"{round(score, 1)}%", st["score_big"]))
+    story.append(Paragraph("SIGNAL BREAKDOWN", st["section_heading"]))
 
     breakdown: dict = data.get("signal_breakdown", {})
     score_rows = [
         [
             Paragraph("Signal", ParagraphStyle("TH", fontName="Helvetica-Bold", fontSize=10, textColor=WHITE, alignment=TA_CENTER)),
-            Paragraph("Score", ParagraphStyle("TH", fontName="Helvetica-Bold", fontSize=10, textColor=WHITE, alignment=TA_CENTER)),
+            Paragraph("Contribution", ParagraphStyle("TH", fontName="Helvetica-Bold", fontSize=10, textColor=WHITE, alignment=TA_CENTER)),
         ],
-        ["ELA",       str(breakdown.get("ela", "—"))],
-        ["Metadata",  str(breakdown.get("metadata", "—"))],
-        ["Noise",     str(breakdown.get("noise", "—"))],
-        ["Copy-Move", str(breakdown.get("copy_move", "—"))],
+        ["ELA Contribution",       f"{round(breakdown.get('ela_contribution', 0), 1)}%" if 'ela_contribution' in breakdown else "—"],
+        ["Metadata Contribution",  f"{round(breakdown.get('metadata_contribution', 0), 1)}%" if 'metadata_contribution' in breakdown else "—"],
+        ["Pattern Contribution",   f"{round(breakdown.get('pattern_contribution', 0), 1)}%" if 'pattern_contribution' in breakdown else "—"],
     ]
     score_table = Table(score_rows, colWidths=[9 * cm, 8 * cm])
     score_table.setStyle(TableStyle([
@@ -233,6 +238,75 @@ def generate_pdf_report(data: dict[str, Any]) -> bytes:
     ]))
     story.append(score_table)
     story.append(Spacer(1, 0.3 * cm))
+    
+    # ── SECTION 3.5 — AI Ensemble Results ───────────────────────────────────
+    ai_ensemble: dict = data.get("ai_ensemble", {})
+    if ai_ensemble:
+        story.append(HRFlowable(width="100%", thickness=0.5, color=ACCENT))
+        story.append(Paragraph("AI GENERATION DETECTION", st["section_heading"]))
+        ai_conf = ai_ensemble.get("ai_confidence", 0)
+        ai_model = ai_ensemble.get("primary_model", "Unknown")
+        story.append(Paragraph(f"<b>AI Confidence:</b> {round(ai_conf, 1)}%", st["body"]))
+        story.append(Paragraph(f"<b>Primary Model:</b> {ai_model}", st["body"]))
+        
+    # ── SECTION 3.6 - Reasoning Chain ───────────────────────────────────────
+    explainability: dict = data.get("explainability", {})
+    reasoning: list = explainability.get("reasoning", [])
+    if reasoning:
+        story.append(HRFlowable(width="100%", thickness=0.5, color=ACCENT))
+        story.append(Paragraph("HOW WE REACHED THIS CONCLUSION", st["section_heading"]))
+        for step in reasoning:
+            story.append(Paragraph(f"• {step}", st["bullet"]))
+        story.append(Spacer(1, 0.3 * cm))
+
+    # ── SECTION 3.8 — Visual Evidence ────────────────────────────────────────
+    visuals = data.get("visualizations", {})
+    ela_base64 = visuals.get("ela_heatmap", "")
+    
+    import os as _os
+    import base64 as _base64
+    from reportlab.platypus import Image
+    
+    base_dir = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), "..", ".."))
+    file_id = data.get("file_id", "")
+    img_path = _os.path.join(base_dir, "uploads", file_id)
+    
+    has_orig = _os.path.exists(img_path)
+    has_ela = bool(ela_base64)
+    
+    if has_orig or has_ela:
+        story.append(HRFlowable(width="100%", thickness=0.5, color=ACCENT))
+        story.append(Paragraph("VISUAL EVIDENCE", st["section_heading"]))
+        
+        images_row = []
+        if has_orig:
+            try:
+                img1 = Image(img_path, width=7*cm, height=7*cm, kind='proportional')
+                images_row.append([Paragraph("<b>Original</b>", st["meta"]), img1])
+            except Exception:
+                pass
+                
+        if has_ela:
+            try:
+                ela_bytes = _base64.b64decode(ela_base64)
+                ela_stream = io.BytesIO(ela_bytes)
+                img2 = Image(ela_stream, width=7*cm, height=7*cm, kind='proportional')
+                images_row.append([Paragraph("<b>ELA Heatmap</b>", st["meta"]), img2])
+            except Exception:
+                pass
+                
+        if images_row:
+            table_data = [[item[0] for item in images_row], [item[1] for item in images_row]]
+            col_widths = [8*cm] * len(images_row)
+            img_table = Table(table_data, colWidths=col_widths)
+            img_table.setStyle(TableStyle([
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ]))
+            story.append(img_table)
+            story.append(Spacer(1, 0.3 * cm))
 
     # ── SECTION 4 — OCR Extracted Text ──────────────────────────────────────
     story.append(HRFlowable(width="100%", thickness=0.5, color=ACCENT))
@@ -244,10 +318,20 @@ def generate_pdf_report(data: dict[str, Any]) -> bytes:
     story.append(HRFlowable(width="100%", thickness=0.5, color=ACCENT))
     story.append(Paragraph("OSINT VERIFICATION", st["section_heading"]))
 
-    explanation: str = data.get("explanation", "No explanation available.")
+    # Try explaining the OSINT from top-level explanation first
+    # (data.get("explanation") was replaced by the complex dict in latest changes, 
+    # but the FE fetch extracts it. We need to handle BOTH strings and dicts properly)
+    exp = data.get("explanation")
+    explanation_str = ""
+    if isinstance(exp, str):
+        explanation_str = exp
+    elif isinstance(exp, dict) and "sections" in exp:
+        pass # Handle in SECTION 6
+        
     fingerprint: str = data.get("fingerprint_match", "")
     story.append(Paragraph(f"<b>Verdict:</b> {verdict}", st["body"]))
-    story.append(Paragraph(f"<b>Explanation:</b> {explanation}", st["body"]))
+    if explanation_str:
+        story.append(Paragraph(f"<b>Explanation:</b> {explanation_str}", st["body"]))
     if fingerprint:
         story.append(Paragraph(f"<b>Fingerprint Match:</b> {fingerprint}", st["body"]))
 
@@ -258,7 +342,7 @@ def generate_pdf_report(data: dict[str, Any]) -> bytes:
             story.append(Paragraph(f"• {src}", st["bullet"]))
 
     # ── SECTION 6 — Evidence Explanation ──────────────────────────────────────
-    evidence_explanation = data.get("evidence_explanation") or data.get("explanation") or {}
+    evidence_explanation = data.get("explanation") or {}
     exp_sections = {}
     if isinstance(evidence_explanation, dict):
         exp_sections = evidence_explanation.get("sections", {})

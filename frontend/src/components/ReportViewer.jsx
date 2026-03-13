@@ -23,7 +23,57 @@ export default function ReportViewer({ scanResult }) {
     if (!scanResult) return null;
 
     const downloadPDF = async (result, selectedLang) => {
-        alert(`Downloading PDF report in ${selectedLang}...`);
+        try {
+            // Check if file_id exists, fallback to image_path base name, or generate a unique ID
+            const fileId = result.file_id || 
+                          (result.image_path ? result.image_path.split(/[\/\\]/).pop() : null) || 
+                          `scan_${Date.now()}`;
+            
+            if (!fileId) throw new Error("No file ID found to download report.");
+
+            // First, try to generate/get the report
+            const generateResponse = await fetch(`http://localhost:8000/report/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    file_id: fileId,
+                    authenticity_score: result.authenticity_score || 0,
+                    threat_category: result.threat_category || 'UNVERIFIED',
+                    risk_level: result.risk_level || 'UNKNOWN',
+                    extracted_text: result.extracted_text || '',
+                    verdict: result.verdict || 'UNVERIFIED',
+                    matched_sources: result.matched_sources || [],
+                    flags: result.flags || [],
+                    // Send additional structured context
+                    executive_summary: result.executive_summary?.[selectedLang] || result.executive_summary?.en || '',
+                    ai_ensemble: result.ai_ensemble || {},
+                    explainability: result.explainability || {},
+                    explanation: result.explanation || {},
+                    timeline_analysis: result.timeline_analysis || {},
+                    visualizations: result.visualizations || {},
+                    signal_breakdown: result.verdict_breakdown || result.signal_breakdown || {}
+                })
+            });
+
+            if (!generateResponse.ok) throw new Error("Failed to generate report.");
+
+            // Now download it
+            const downloadResponse = await fetch(`http://localhost:8000/report/download/${fileId}`);
+            if (!downloadResponse.ok) throw new Error("Failed to download PDF.");
+
+            const blob = await downloadResponse.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `PhantomProof_Report_${fileId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error(error);
+            alert("Error downloading report: " + error.message);
+        }
     };
 
     const t = translations[lang] || translations.en;
@@ -45,7 +95,7 @@ export default function ReportViewer({ scanResult }) {
     const hasExplanation = explanation && typeof explanation === 'object' && explanation.sections;
 
     return (
-        <div className="w-full max-w-4xl mx-auto rounded-2xl overflow-hidden bg-gray-900 border border-gray-800 shadow-2xl flex flex-col">
+        <div className="w-full mx-auto rounded-2xl overflow-hidden bg-gray-900 border border-gray-800 shadow-2xl flex flex-col">
             {/* LANGUAGE SWITCHER */}
             <div className="flex flex-wrap items-center justify-center p-4 bg-gray-950 border-b border-gray-800 gap-2">
                 {languages.map(l => (

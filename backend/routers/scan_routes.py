@@ -93,6 +93,14 @@ class ReportRequest(BaseModel):
     verdict: str
     matched_sources: list[str] = []
     flags: list[str] = []
+    # New fields for better report generation
+    executive_summary: str = ""
+    ai_ensemble: dict = {}
+    explainability: dict = {}
+    explanation: dict = {}
+    timeline_analysis: dict = {}
+    visualizations: dict = {}
+    signal_breakdown: dict = {}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. GET /health
