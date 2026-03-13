@@ -1,0 +1,58 @@
+[
+    {
+        "case_id": "M-2023-001",
+        "claim": "Israeli missile strike on Evin Prison",
+        "title": "Evin Prison Fire Falsely Attributed to Missile Strike",
+        "similarity": 1.0,
+        "verdict": "FALSE",
+        "original_date": "2022-10-15",
+        "misuse_date": "2023-11-04",
+        "fact_check_date": "2023-11-05",
+        "original_context": "A fire broke out at Evin Prison in Tehran, Iran, following clashes among inmates.",
+        "references": [
+            "Reuters Fact Check",
+            "AFP Fact Check"
+        ],
+        "timeline": [
+            {
+                "date": "2022-10-15",
+                "event": "Original photograph published by Reuters showing fire at Evin Prison, Tehran.",
+                "source": "Reuters",
+                "confidence": 0.95
+            },
+            {
+                "date": "2023-11-04",
+                "event": "Image reused in viral social media posts with altered context, claiming it shows an Israeli missile strike.",
+                "source": "Social media archive",
+                "confidence": 0.88
+            },
+            {
+                "date": "2023-11-05",
+                "event": "Fact-checkers debunked the reused claim, identifying the original 2022 context.",
+                "source": "AFP Fact Check",
+                "confidence": 0.98
+            }
+        ]
+    },
+    {
+        "case_id": "M-2024-042",
+        "claim": "Protestors breaking into government building in Paris",
+        "title": "Old Protest Footage from 2018 Yellow Vests Misrepresented as 2024",
+        "verdict": "MISLEADING",
+        "original_context": "Yellow Vests protesters clashing with police in Paris in 2018.",
+        "timeline": [
+            {
+                "date": "2018-12-01",
+                "event": "Original video recorded during 'Gilets Jaunes' protests in Paris.",
+                "source": "Associated Press",
+                "confidence": 0.99
+            },
+            {
+                "date": "2024-01-20",
+                "event": "Footage recirculated claiming to show current farmers' protests.",
+                "source": "Misinformation Monitor",
+                "confidence": 0.85
+            }
+        ]
+    }
+]

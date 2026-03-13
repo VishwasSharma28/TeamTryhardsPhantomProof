@@ -1,0 +1,111 @@
+﻿{
+  "lockdown_hoax": {
+    "file_id": "lockdown_hoax.jpg",
+    "authenticity_score": 18.4,
+    "signal_breakdown": {
+      "ela": 12.0,
+      "metadata": 8.5,
+      "noise": 28.0,
+      "copy_move": 22.1
+    },
+    "heatmap_url": "outputs/lockdown_hoax_heatmap.png",
+    "extracted_text": "सरकार ने घोषणा की है कि कल रात 12 बजे से पूरे देश में सम्पूर्ण लॉकडाउन लागू होगा। सभी राज्यों में धारा 144 लागू। WhatsApp पर आगे भेजें।",
+    "threat_category": "PROPAGANDA",
+    "risk_level": "CRITICAL",
+    "flags": ["metadata_software_edit", "copy_move_detected", "missing_exif"],
+    "formula": "0.35×ELA + 0.25×Metadata + 0.20×Noise + 0.20×CopyMove",
+    "verdict": "FALSE",
+    "matched_sources": ["AltNews", "PIB", "BOOM", "FactChecker.in"],
+    "explanation": "Matches known lockdown misinformation pattern circulated in 2021. No official government order exists with this language.",
+    "fingerprint_match": "LOCKDOWN_HOAX_2021",
+    "language_detected": "hi"
+  },
+
+  "fake_upi": {
+    "file_id": "fake_upi_screenshot.png",
+    "authenticity_score": 22.1,
+    "signal_breakdown": {
+      "ela": 15.3,
+      "metadata": 10.0,
+      "noise": 38.5,
+      "copy_move": 21.0
+    },
+    "heatmap_url": "outputs/fake_upi_screenshot_heatmap.png",
+    "extracted_text": "Congratulations! Your UPI payment of ₹50,000 has been received. Click here to claim your KYC reward: bit.ly/upi-claim-now. Offer valid for 24 hours only.",
+    "threat_category": "PHISHING",
+    "risk_level": "CRITICAL",
+    "flags": ["metadata_software_edit", "copy_move_detected"],
+    "formula": "0.35×ELA + 0.25×Metadata + 0.20×Noise + 0.20×CopyMove",
+    "verdict": "SCAM",
+    "matched_sources": ["AltNews", "CERT-In", "PIB"],
+    "explanation": "Matches known UPI fraud pattern. Fake payment confirmation screenshot used to harvest KYC credentials. Shortened URL leads to phishing domain.",
+    "fingerprint_match": "UPI_FRAUD_V3",
+    "language_detected": "en"
+  },
+
+  "fake_circular": {
+    "file_id": "fake_government_circular.pdf",
+    "authenticity_score": 31.2,
+    "signal_breakdown": {
+      "ela": 24.0,
+      "metadata": 20.5,
+      "noise": 48.0,
+      "copy_move": 35.0
+    },
+    "heatmap_url": "outputs/fake_government_circular_heatmap.png",
+    "extracted_text": "भारत सरकार — गृह मंत्रालय। परिपत्र संख्या: MHA/2024/09/CONF। विषय: राष्ट्रीय आपातकाल की घोषणा हेतु प्रस्ताव। यह पत्र गोपनीय है।",
+    "threat_category": "MANIPULATED_MEDIA",
+    "risk_level": "HIGH",
+    "flags": ["metadata_software_edit", "missing_exif"],
+    "formula": "0.35×ELA + 0.25×Metadata + 0.20×Noise + 0.20×CopyMove",
+    "verdict": "UNVERIFIED",
+    "matched_sources": ["PIB", "BOOM"],
+    "explanation": "Document bears forged Ministry of Home Affairs letterhead. No such circular exists in official government records. ELA analysis reveals digital manipulation in seal area.",
+    "fingerprint_match": "FAKE_CIRCULAR",
+    "language_detected": "hi"
+  },
+
+  "real_news": {
+    "file_id": "pib_press_release.jpg",
+    "authenticity_score": 87.3,
+    "signal_breakdown": {
+      "ela": 89.0,
+      "metadata": 92.5,
+      "noise": 81.0,
+      "copy_move": 85.5
+    },
+    "heatmap_url": "outputs/pib_press_release_heatmap.png",
+    "extracted_text": "Press Information Bureau — Government of India. PM Narendra Modi inaugurates the new AIIMS campus in Rajkot, Gujarat. The facility will serve over 20 lakh patients annually. Official PIB Release dated 06 March 2024.",
+    "threat_category": "LOW",
+    "risk_level": "LOW",
+    "flags": [],
+    "formula": "0.35×ELA + 0.25×Metadata + 0.20×Noise + 0.20×CopyMove",
+    "verdict": "TRUE",
+    "matched_sources": ["PIB", "ANI", "PTI", "Hindustan Times"],
+    "explanation": "Document verified against official PIB records. EXIF metadata intact and consistent with government press release publication workflow. No signs of digital manipulation detected.",
+    "fingerprint_match": "",
+    "language_detected": "en"
+  },
+
+  "ai_tweet": {
+    "file_id": "ai_celebrity_tweet.jpg",
+    "authenticity_score": 12.6,
+    "signal_breakdown": {
+      "ela": 8.2,
+      "metadata": 6.0,
+      "noise": 22.5,
+      "copy_move": 16.0
+    },
+    "heatmap_url": "outputs/ai_celebrity_tweet_heatmap.png",
+    "extracted_text": "Just confirmed: I am leaving India forever due to the toxic political environment. This country no longer deserves my work. Goodbye. — [Celebrity Name] ✔",
+    "threat_category": "PROPAGANDA",
+    "risk_level": "CRITICAL",
+    "flags": ["metadata_software_edit", "copy_move_detected", "missing_exif"],
+    "formula": "0.35×ELA + 0.25×Metadata + 0.20×Noise + 0.20×CopyMove",
+    "verdict": "FALSE",
+    "matched_sources": ["AltNews", "BOOM", "Vishvas News"],
+    "explanation": "AI-generated tweet screenshot fabricated using a UI cloning tool. Verified tweet handle shows no such post. ELA reveals near-zero compression history consistent with a synthetic screenshot. Typography and checkmark badge are inconsistent with the official Twitter/X UI.",
+    "fingerprint_match": "AI_SYNTHETIC_TWEET_V1",
+    "language_detected": "en"
+  }
+}
