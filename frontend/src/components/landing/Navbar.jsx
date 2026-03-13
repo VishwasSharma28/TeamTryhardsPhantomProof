@@ -29,11 +29,10 @@ export default function Navbar({ onTryNow }) {
       className="fixed top-0 left-0 right-0 z-50 px-4 pt-4"
     >
       <div
-        className={`w-fit mx-auto transition-all duration-700 rounded-full px-8 py-3 flex items-center justify-center pointer-events-auto shadow-2xl ${
-          scrolled
+        className={`w-fit mx-auto transition-all duration-700 rounded-full px-8 py-3 flex items-center justify-center pointer-events-auto shadow-2xl ${scrolled
             ? "glass-panel-heavy"
             : "glass-panel"
-        }`}
+          }`}
       >
         {/* Center Navigation - Perfectly Spaced */}
         <div className="hidden md:flex items-center gap-8 lg:gap-12">

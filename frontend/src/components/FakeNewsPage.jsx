@@ -43,7 +43,8 @@ const FakeNewsPage = () => {
 
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Analysis failed. Please try again.');
+      const backendError = err.response?.data?.error || err.response?.data?.detail || err.message;
+      setError(`Analysis failed: ${backendError}`);
     } finally {
       setLoading(false);
     }

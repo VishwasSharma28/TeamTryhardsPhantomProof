@@ -1,7 +1,5 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 
 const ReceiptVerificationPage = () => {
   const [file, setFile] = useState(null);
@@ -62,7 +60,8 @@ const ReceiptVerificationPage = () => {
       setResult(response.data.payment_analysis);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Failed to scan the payment receipt.');
+      const backendError = err.response?.data?.error || err.response?.data?.detail || err.message;
+      setError(`Failed to scan the payment receipt: ${backendError}`);
     } finally {
       setLoading(false);
     }
@@ -90,26 +89,129 @@ const ReceiptVerificationPage = () => {
       return 'text-emerald-500 border-emerald-500 bg-emerald-500/10';
     };
 
-    const handleDownloadPDF = async () => {
-      const reportElement = document.getElementById('report-container');
-      if (!reportElement) return;
-      
-      try {
-        const canvas = await html2canvas(reportElement, {
-          scale: 2,
-          backgroundColor: '#111827', // Match gray-900 background
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`Fraud_Report_${utr || 'Scan'}.pdf`);
-      } catch (err) {
-        console.error('Error generating PDF', err);
-      }
+    const handleDownloadPDF = () => {
+      const now = new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
+
+      const verdictColors = {
+        fraud: { bg: '#fef2f2', border: '#dc2626', text: '#b91c1c' },
+        suspicious: { bg: '#fffbeb', border: '#d97706', text: '#b45309' },
+        genuine: { bg: '#f0fdf4', border: '#16a34a', text: '#15803d' },
+      };
+      const vKey = isFraud ? 'fraud' : isSuspicious ? 'suspicious' : 'genuine';
+      const vColors = verdictColors[vKey];
+      const verdictIcon = isFraud ? '🚨' : isSuspicious ? '⚠️' : '✅';
+
+      const checkRow = (label, passed, passText, failText) => `
+        <tr>
+          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#374151;font-size:14px;">${label}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:right;">
+            <span style="display:inline-block;padding:3px 12px;border-radius:6px;font-size:12px;font-weight:600;${
+              passed
+                ? 'background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;'
+                : 'background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;'
+            }">${passed ? passText : failText}</span>
+          </td>
+        </tr>`;
+
+      const explanationsHtml = (explanations && explanations.length > 0)
+        ? explanations.map(exp => `<li style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#374151;font-size:13px;line-height:1.6;">${exp}</li>`).join('')
+        : '';
+
+      const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>PHANTOMPROOF — Payment Receipt Report</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:#fff; color:#1f2937; padding:40px; max-width:800px; margin:0 auto; }
+  .header { text-align:center; border-bottom:2px solid #e5e7eb; padding-bottom:24px; margin-bottom:28px; }
+  .header h1 { font-size:28px; font-weight:800; color:#059669; letter-spacing:-0.5px; }
+  .header p { font-size:12px; color:#9ca3af; margin-top:6px; }
+  .verdict-box { padding:20px 24px; border-radius:12px; border-left:5px solid ${vColors.border}; background:${vColors.bg}; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; }
+  .verdict-box .label { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#6b7280; margin-bottom:4px; }
+  .verdict-box .value { font-size:26px; font-weight:800; color:${vColors.text}; }
+  .verdict-box .score { text-align:right; }
+  .verdict-box .score-value { font-size:32px; font-weight:800; color:${vColors.text}; }
+  .verdict-box .score-label { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:1px; }
+  .section { margin-bottom:22px; }
+  .section-title { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#6b7280; margin-bottom:10px; font-weight:600; }
+  .details-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
+  .detail-card { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:14px 16px; }
+  .detail-card .label { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#9ca3af; margin-bottom:4px; }
+  .detail-card .value { font-size:18px; font-weight:700; color:#1f2937; }
+  table { width:100%; border-collapse:collapse; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; }
+  table th { padding:10px 14px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#6b7280; background:#f3f4f6; border-bottom:2px solid #e5e7eb; }
+  table th:last-child { text-align:right; }
+  .footer { text-align:center; margin-top:36px; padding-top:20px; border-top:1px solid #e5e7eb; font-size:11px; color:#9ca3af; }
+  @media print { body { padding:20px; } }
+</style></head><body>
+
+<div class="header">
+  <h1>🛡️ PHANTOMPROOF.ai</h1>
+  <p>Payment Receipt Verification Report • Generated ${now}</p>
+</div>
+
+<div class="verdict-box">
+  <div>
+    <div class="label">Verdict</div>
+    <div class="value">${verdictIcon} ${verdict}</div>
+  </div>
+  <div class="score">
+    <div class="score-label">Fraud Score</div>
+    <div class="score-value">${fraud_score}/100</div>
+  </div>
+</div>
+
+<div class="details-grid">
+  <div class="detail-card">
+    <div class="label">Detected Amount</div>
+    <div class="value">${amount_detected || 'N/A'}</div>
+  </div>
+  <div class="detail-card">
+    <div class="label">Detected Bank</div>
+    <div class="value">${bank_detected || 'N/A'}</div>
+  </div>
+  <div class="detail-card">
+    <div class="label">Extracted UTR</div>
+    <div class="value" style="font-family:monospace;">${utr || 'N/A'}</div>
+  </div>
+  <div class="detail-card">
+    <div class="label">UTR Format</div>
+    <div class="value">${utr_valid ? '✅ Valid' : '❌ Invalid'}</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Verification Checks</div>
+  <table>
+    <thead><tr><th>Check</th><th>Result</th></tr></thead>
+    <tbody>
+      ${checkRow('UTR Format Valid', utr_valid, '✅ Passed', '❌ Failed')}
+      ${checkRow('Image Tampering (ELA)', !tampering_detected, '✅ No Tampering', '❌ Detected')}
+      ${checkRow('Layout Consistency', !layout_anomaly, '✅ Consistent', '❌ Anomalous')}
+    </tbody>
+  </table>
+</div>
+
+${explanationsHtml ? `
+<div class="section">
+  <div class="section-title">Analysis Explanations</div>
+  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;">
+    <ol style="margin:0;padding-left:20px;list-style:decimal;">
+      ${explanationsHtml}
+    </ol>
+  </div>
+</div>` : ''}
+
+<div class="footer">
+  <p>PHANTOMPROOF.ai — AI-Powered Image Forensics & Payment Fraud Detection</p>
+  <p style="margin-top:4px;">This report was auto-generated. Always cross-verify with your bank for official transaction status.</p>
+</div>
+
+</body></html>`;
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      setTimeout(() => { win.print(); }, 600);
     };
 
     return (
