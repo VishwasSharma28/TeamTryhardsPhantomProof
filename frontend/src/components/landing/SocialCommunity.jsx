@@ -10,20 +10,23 @@ export default function SocialCommunity() {
 
   const { scrollYProgress } = useScroll({
     target: ref,
-    offset: ["start start", "end start"],
+    offset: ["start end", "end start"],
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.8], [1, 0.95]);
+  const opacity = useTransform(scrollYProgress, [0, 0.3, 0.8], [0, 1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.3, 0.8], [0.9, 1, 0.95]);
+  const rotateX = useTransform(scrollYProgress, [0, 0.3, 0.7], [12, 0, -6]);
+  const translateZ = useTransform(scrollYProgress, [0, 0.3, 0.7], [-120, 0, -40]);
+  const translateY = useTransform(scrollYProgress, [0, 0.3], [60, 0]);
 
   return (
-    <section id="community" ref={ref} className="relative py-28 lg:py-36">
+    <section id="community" ref={ref} className="relative py-28 lg:py-36" style={{ perspective: "1200px" }}>
       <motion.div 
-        style={{ opacity, scale }}
+        style={{ opacity, scale, rotateX, translateZ, translateY, transformStyle: "preserve-3d" }}
         className="max-w-7xl mx-auto px-8"
       >
-        <div className="glass-panel p-1">
-          <div className="relative rounded-2xl bg-slate-900/40 backdrop-blur-3xl p-12 md:p-16 lg:p-24 overflow-hidden">
+        <div className="bg-white/[0.03] border border-white/[0.06] backdrop-blur-lg rounded-3xl p-1">
+          <div className="relative rounded-2xl bg-gradient-to-br from-phantom-800 to-phantom-900 backdrop-blur-3xl p-12 md:p-16 lg:p-24 overflow-hidden">
             {/* Dot pattern */}
             <div className="absolute inset-0 opacity-[0.02]"
               style={{
