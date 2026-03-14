@@ -4,7 +4,7 @@ python-multipart
 supabase
 pillow
 opencv-python-headless
-easyocr
+easyocr==1.7.1
 reportlab
 qrcode[pil]
 beautifulsoup4
@@ -21,3 +21,4 @@ scikit-learn
 sentencepiece
 sentence-transformers
 faiss-cpu
+python-bidi==0.4.2
