@@ -100,22 +100,21 @@ const FakeNewsPage = () => {
 <html><head><meta charset="UTF-8"><title>PHANTOMPROOF — Fake News Report</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:#fff; color:#1f2937; padding:40px; max-width:800px; margin:0 auto; }
-  .header { text-align:center; border-bottom:2px solid #e5e7eb; padding-bottom:24px; margin-bottom:28px; }
-  .header h1 { font-size:28px; font-weight:800; color:#7c3aed; letter-spacing:-0.5px; }
-  .header p { font-size:12px; color:#9ca3af; margin-top:6px; }
-  .verdict-box { padding:20px 24px; border-radius:12px; border-left:5px solid ${vColors.border}; background:${vColors.bg}; margin-bottom:24px; }
-  .verdict-box .label { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#6b7280; margin-bottom:4px; }
-  .verdict-box .value { font-size:26px; font-weight:800; color:${vColors.text}; }
-  .verdict-box .tag { display:inline-block; font-size:11px; background:#f3e8ff; color:#7c3aed; padding:2px 10px; border-radius:12px; margin-top:6px; }
-  .section { margin-bottom:22px; }
-  .section-title { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#6b7280; margin-bottom:10px; font-weight:600; }
-  .card { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:16px; page-break-inside: avoid; }
-  .ocr-text { font-family:'Courier New',monospace; font-size:13px; line-height:1.7; color:#374151; white-space:pre-wrap; background:#f3f4f6; padding:14px; border-radius:8px; max-height:200px; overflow-y:auto; }
-  .explanation { font-size:14px; line-height:1.7; color:#374151; }
-  .footer { display:flex; justify-content:space-between; align-items:center; margin-top:36px; padding-top:20px; border-top:1px solid #e5e7eb; font-size:11px; color:#9ca3af; page-break-inside: avoid; }
-  .models-section { margin-top:6px; }
-  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  body { font-family:'Helvetica Neue', Arial, sans-serif; background:#fff; color:#000; padding:40px; line-height:1.4; }
+  .header { text-align:center; border-bottom:3px solid #000; padding-bottom:24px; margin-bottom:28px; }
+  .header h1 { font-size:32px; font-weight:900; color:#000; text-transform:uppercase; letter-spacing:-1px; }
+  .header p { font-size:12px; font-weight:700; color:#444; margin-top:6px; text-transform:uppercase; }
+  .verdict-box { padding:24px; border:2px solid #000; border-left-width:8px; background:${vColors.bg}; margin-bottom:24px; }
+  .verdict-box .label { font-size:12px; text-transform:uppercase; font-weight:900; color:#000; margin-bottom:4px; }
+  .verdict-box .value { font-size:28px; font-weight:900; color:${vColors.text}; }
+  .verdict-box .tag { display:inline-block; font-size:11px; background:#000; color:#fff; padding:3px 12px; font-weight:900; margin-top:8px; text-transform:uppercase; }
+  .section { margin-bottom:25px; }
+  .section-title { font-size:13px; text-transform:uppercase; color:#000; border-bottom:2px solid #000; padding-bottom:4px; margin-bottom:15px; font-weight:900; }
+  .card { background:#fff; border:1px solid #000; padding:18px; page-break-inside: avoid; }
+  .ocr-text { font-family:monospace; font-size:13px; line-height:1.6; color:#000; font-weight:700; white-space:pre-wrap; background:#f8fafc; padding:15px; border:1px solid #e5e7eb; }
+  .explanation { font-size:15px; line-height:1.6; color:#000; font-weight:500; }
+  .footer { display:flex; justify-content:space-between; align-items:center; margin-top:50px; padding-top:20px; border-top:2px solid #000; font-size:11px; color:#000; font-weight:700; }
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 </style></head><body>
 
 <div class="header">
@@ -191,30 +190,10 @@ ${modelsHtml ? `
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // Create a temporary hidden element to render the HTML string
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    container.innerHTML = html;
-    document.body.appendChild(container);
-
     try {
-      // Generate the PDF from the temp element
-      html2pdf().from(container).set(opt).output('blob').then((pdfBlob) => {
-        const url = URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = opt.filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        document.body.removeChild(container);
-      });
+      await html2pdf().from(html).set(opt).save();
     } catch (e) {
       console.error("PDF Generation Error:", e);
-      document.body.removeChild(container);
       alert("Failed to generate PDF. Please try again.");
     }
   };
