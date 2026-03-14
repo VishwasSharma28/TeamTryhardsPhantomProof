@@ -144,6 +144,9 @@ Generates a polished forensic report containing:
 
 ---
 
+
+
+
 ## 🏗️ High-Level Architecture
 
 ```mermaid
