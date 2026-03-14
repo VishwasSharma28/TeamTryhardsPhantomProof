@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
+import API_URL from '../config.js';
 
 const ImageUpload = ({ onUploadStart, onUploadSuccess, onUploadError }) => {
     const [dragActive, setDragActive] = useState(false);
@@ -46,7 +47,7 @@ const ImageUpload = ({ onUploadStart, onUploadSuccess, onUploadError }) => {
 
         try {
             // Unified Endpoint Call
-            const analyzeRes = await axios.post('http://localhost:8000/scan/image?lang=en', formData, {
+            const analyzeRes = await axios.post(`${API_URL}/scan/image?lang=en`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 

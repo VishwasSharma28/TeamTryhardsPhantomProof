@@ -3,6 +3,7 @@ import axios from 'axios';
 import html2pdf from 'html2pdf.js';
 import { QRCodeSVG } from 'qrcode.react';
 import { renderToString } from 'react-dom/server';
+import API_URL from '../config.js';
 
 const ReceiptVerificationPage = () => {
   const [file, setFile] = useState(null);
@@ -57,7 +58,7 @@ const ReceiptVerificationPage = () => {
     formData.append('file', file);
 
     try {
-      const response = await axios.post('http://localhost:8000/scan/payment', formData, {
+      const response = await axios.post(`${API_URL}/scan/payment`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setResult(response.data.payment_analysis);
