@@ -1,5 +1,8 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
+import html2pdf from 'html2pdf.js';
+import { QRCodeSVG } from 'qrcode.react';
+import { renderToString } from 'react-dom/server';
 
 const FakeNewsPage = () => {
   const [file, setFile] = useState(null);
@@ -36,6 +39,7 @@ const FakeNewsPage = () => {
       });
 
       setResult({
+        file_id,
         extracted_text,
         language_detected: analyzeRes.data.language_detected || 'en',
         ...osintRes.data
@@ -64,7 +68,7 @@ const FakeNewsPage = () => {
     if (e.dataTransfer.files?.[0]) handleFile(e.dataTransfer.files[0]);
   };
 
-  const downloadReport = () => {
+  const downloadReport = async () => {
     if (!result) return;
     const vc = verdictConfig[result?.verdict] || verdictConfig['UNVERIFIED'];
     const langMap = { hi: 'Hindi', ta: 'Tamil', te: 'Telugu', kn: 'Kannada', ml: 'Malayalam', bn: 'Bengali', en: 'English' };
@@ -89,6 +93,9 @@ const FakeNewsPage = () => {
     };
     const vColors = verdictColors[result.verdict] || verdictColors['UNVERIFIED'];
 
+    const qrUrl = result.file_id ? `https://phantomproof.ai/verify/${result.file_id}` : `https://phantomproof.ai/verify/fakerpt_${Date.now()}`;
+    const qrSvgString = renderToString(<QRCodeSVG value={qrUrl} size={64} level="M" fgColor="#000000" bgColor="#ffffff" />);
+
     const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>PHANTOMPROOF — Fake News Report</title>
 <style>
@@ -103,14 +110,12 @@ const FakeNewsPage = () => {
   .verdict-box .tag { display:inline-block; font-size:11px; background:#f3e8ff; color:#7c3aed; padding:2px 10px; border-radius:12px; margin-top:6px; }
   .section { margin-bottom:22px; }
   .section-title { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#6b7280; margin-bottom:10px; font-weight:600; }
-  .card { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:16px; }
+  .card { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:16px; page-break-inside: avoid; }
   .ocr-text { font-family:'Courier New',monospace; font-size:13px; line-height:1.7; color:#374151; white-space:pre-wrap; background:#f3f4f6; padding:14px; border-radius:8px; max-height:200px; overflow-y:auto; }
   .explanation { font-size:14px; line-height:1.7; color:#374151; }
-  .footer { text-align:center; margin-top:36px; padding-top:20px; border-top:1px solid #e5e7eb; font-size:11px; color:#9ca3af; }
+  .footer { display:flex; justify-content:space-between; align-items:center; margin-top:36px; padding-top:20px; border-top:1px solid #e5e7eb; font-size:11px; color:#9ca3af; page-break-inside: avoid; }
   .models-section { margin-top:6px; }
   .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  @media print { body { padding:20px; } }
-  @media (max-width:600px) { .two-col { grid-template-columns:1fr; } }
 </style></head><body>
 
 <div class="header">
@@ -154,7 +159,7 @@ ${modelsHtml ? `
   <div class="models-section">${modelsHtml}</div>
 </div>` : ''}
 
-<div class="section">
+<div class="section" style="page-break-inside: avoid;">
   <div class="section-title">How It Works</div>
   <div class="card" style="font-size:13px;line-height:1.8;color:#4b5563;">
     ${result.translated ? '<p>🌐 <strong>Step 1:</strong> Non-English text was detected and automatically translated to English.</p>' : ''}
@@ -166,18 +171,52 @@ ${modelsHtml ? `
 </div>
 
 <div class="footer">
-  <p>PHANTOMPROOF.ai — AI-Powered Image Forensics & Fake News Detection</p>
-  <p style="margin-top:4px;">This report was auto-generated. Always verify critical claims from official sources.</p>
+  <div style="text-align:left;">
+    <p><strong>PHANTOMPROOF.ai — AI-Powered Image Forensics & Fake News Detection</strong></p>
+    <p style="margin-top:4px;">This report was auto-generated. Always verify critical claims from official sources.</p>
+    <p style="margin-top:4px;">For verification, scan the QR code or visit ${qrUrl}</p>
+  </div>
+  <div>
+    ${qrSvgString}
+  </div>
 </div>
 
 </body></html>`;
 
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, '_blank');
-    setTimeout(() => {
-      win.print();
-    }, 600);
+    const opt = {
+      margin: 10,
+      filename: `PhantomProof_FakeNews_${result.file_id || Date.now()}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Create a temporary hidden element to render the HTML string
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.innerHTML = html;
+    document.body.appendChild(container);
+
+    try {
+      // Generate the PDF from the temp element
+      html2pdf().from(container).set(opt).output('blob').then((pdfBlob) => {
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = opt.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        document.body.removeChild(container);
+      });
+    } catch (e) {
+      console.error("PDF Generation Error:", e);
+      document.body.removeChild(container);
+      alert("Failed to generate PDF. Please try again.");
+    }
   };
 
   const verdictConfig = {

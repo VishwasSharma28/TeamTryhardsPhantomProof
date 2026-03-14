@@ -1,5 +1,8 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
+import html2pdf from 'html2pdf.js';
+import { QRCodeSVG } from 'qrcode.react';
+import { renderToString } from 'react-dom/server';
 
 const ReceiptVerificationPage = () => {
   const [file, setFile] = useState(null);
@@ -89,7 +92,7 @@ const ReceiptVerificationPage = () => {
       return 'text-emerald-500 border-emerald-500 bg-emerald-500/10';
     };
 
-    const handleDownloadPDF = () => {
+    const handleDownloadPDF = async () => {
       const now = new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
 
       const verdictColors = {
@@ -117,6 +120,9 @@ const ReceiptVerificationPage = () => {
         ? explanations.map(exp => `<li style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#374151;font-size:13px;line-height:1.6;">${exp}</li>`).join('')
         : '';
 
+      const qrUrl = result.file_id ? `https://phantomproof.ai/verify/${result.file_id}` : `https://phantomproof.ai/verify/rcpt_${Date.now()}`;
+      const qrSvgString = renderToString(<QRCodeSVG value={qrUrl} size={64} level="M" fgColor="#000000" bgColor="#ffffff" />);
+
       const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>PHANTOMPROOF — Payment Receipt Report</title>
 <style>
@@ -133,15 +139,14 @@ const ReceiptVerificationPage = () => {
   .verdict-box .score-label { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:1px; }
   .section { margin-bottom:22px; }
   .section-title { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#6b7280; margin-bottom:10px; font-weight:600; }
-  .details-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
+  .details-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; page-break-inside: avoid; }
   .detail-card { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:14px 16px; }
   .detail-card .label { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#9ca3af; margin-bottom:4px; }
   .detail-card .value { font-size:18px; font-weight:700; color:#1f2937; }
-  table { width:100%; border-collapse:collapse; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; page-break-inside: avoid; }
   table th { padding:10px 14px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#6b7280; background:#f3f4f6; border-bottom:2px solid #e5e7eb; }
   table th:last-child { text-align:right; }
-  .footer { text-align:center; margin-top:36px; padding-top:20px; border-top:1px solid #e5e7eb; font-size:11px; color:#9ca3af; }
-  @media print { body { padding:20px; } }
+  .footer { display:flex; justify-content:space-between; align-items:center; margin-top:36px; padding-top:20px; border-top:1px solid #e5e7eb; font-size:11px; color:#9ca3af; page-break-inside: avoid; }
 </style></head><body>
 
 <div class="header">
@@ -192,7 +197,7 @@ const ReceiptVerificationPage = () => {
 </div>
 
 ${explanationsHtml ? `
-<div class="section">
+<div class="section" style="page-break-inside: avoid;">
   <div class="section-title">Analysis Explanations</div>
   <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;">
     <ol style="margin:0;padding-left:20px;list-style:decimal;">
@@ -202,16 +207,49 @@ ${explanationsHtml ? `
 </div>` : ''}
 
 <div class="footer">
-  <p>PHANTOMPROOF.ai — AI-Powered Image Forensics & Payment Fraud Detection</p>
-  <p style="margin-top:4px;">This report was auto-generated. Always cross-verify with your bank for official transaction status.</p>
+  <div style="text-align:left;">
+    <p><strong>PHANTOMPROOF.ai — AI-Powered Image Forensics & Payment Fraud Detection</strong></p>
+    <p style="margin-top:4px;">This report was auto-generated. Always cross-verify with your bank for official transaction status.</p>
+    <p style="margin-top:4px;">For verification, scan the QR code or visit ${qrUrl}</p>
+  </div>
+  <div>
+    ${qrSvgString}
+  </div>
 </div>
 
 </body></html>`;
 
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, '_blank');
-      setTimeout(() => { win.print(); }, 600);
+      const opt = {
+        margin: 10,
+        filename: `PhantomProof_Receipt_${result.file_id || Date.now()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.innerHTML = html;
+      document.body.appendChild(container);
+
+      try {
+        const pdfBlob = await html2pdf().from(container).set(opt).output('blob');
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = opt.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        document.body.removeChild(container);
+      } catch (e) {
+        console.error("PDF Generation Error:", e);
+        document.body.removeChild(container);
+        alert("Failed to generate PDF. Please try again.");
+      }
     };
 
     return (

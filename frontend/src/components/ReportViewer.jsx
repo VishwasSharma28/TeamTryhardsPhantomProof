@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { translations } from '../i18n/translations';
 import AIDetectionCard from './AIDetectionCard';
+import html2pdf from 'html2pdf.js';
+import { QRCodeSVG } from 'qrcode.react';
+import { renderToString } from 'react-dom/server';
 
 const languages = [
     { code: "en", name: "English", flag: "🇺🇸" },
@@ -24,55 +27,132 @@ export default function ReportViewer({ scanResult }) {
 
     const downloadPDF = async (result, selectedLang) => {
         try {
-            // Check if file_id exists, fallback to image_path base name, or generate a unique ID
-            const fileId = result.file_id || 
-                          (result.image_path ? result.image_path.split(/[\/\\]/).pop() : null) || 
-                          `scan_${Date.now()}`;
+            const fileId = result.file_id || (result.image_path ? result.image_path.split(/[\/\\]/).pop() : null) || `scan_${Date.now()}`;
+            const t = translations[selectedLang] || translations.en;
+            const now = new Date().toLocaleString();
             
-            if (!fileId) throw new Error("No file ID found to download report.");
+            const qrUrl = `https://phantomproof.ai/verify/${fileId}`;
+            const qrSvgString = renderToString(<QRCodeSVG value={qrUrl} size={64} level="M" fgColor="#000000" bgColor="#ffffff" />);
 
-            // First, try to generate/get the report
-            const generateResponse = await fetch(`http://localhost:8000/report/generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    file_id: fileId,
-                    authenticity_score: result.authenticity_score || 0,
-                    threat_category: result.threat_category || 'UNVERIFIED',
-                    risk_level: result.risk_level || 'UNKNOWN',
-                    extracted_text: result.extracted_text || '',
-                    verdict: result.verdict || 'UNVERIFIED',
-                    matched_sources: result.matched_sources || [],
-                    flags: result.flags || [],
-                    // Send additional structured context
-                    executive_summary: result.executive_summary?.[selectedLang] || result.executive_summary?.en || '',
-                    ai_ensemble: result.ai_ensemble || {},
-                    explainability: result.explainability || {},
-                    explanation: result.explanation || {},
-                    timeline_analysis: result.timeline_analysis || {},
-                    visualizations: result.visualizations || {},
-                    signal_breakdown: result.verdict_breakdown || result.signal_breakdown || {}
-                })
-            });
+            // Helper to build signal bars
+            const signals = result.verdict_breakdown || result.signal_breakdown || {};
+            const signalsHtml = Object.entries(signals).map(([key, val]) => `
+                <div style="margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; font-size:10px; color:#6b7280; margin-bottom:2px;">
+                        <span style="text-transform:capitalize;">${key.replace('_', ' ')}</span>
+                        <span>${val.toFixed(1)}%</span>
+                    </div>
+                    <div style="width:100%; height:4px; background:#e5e7eb; border-radius:2px;">
+                        <div style="width:${val}%; height:100%; background:${val > 70 ? '#10b981' : val > 40 ? '#f59e0b' : '#ef4444'}; border-radius:2px;"></div>
+                    </div>
+                </div>
+            `).join('');
 
-            if (!generateResponse.ok) throw new Error("Failed to generate report.");
+            const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>PHANTOMPROOF — Forensic Analysis Report</title>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',sans-serif; background:#fff; color:#1f2937; padding:40px; line-height:1.5; }
+    .header { text-align:center; border-bottom:2px solid #e5e7eb; padding-bottom:20px; margin-bottom:30px; }
+    .header h1 { font-size:24px; color:#2563eb; }
+    .badge { display:inline-block; padding:8px 20px; border-radius:30px; font-weight:bold; font-size:18px; margin-top:10px; color:#fff; }
+    .badge-verified { background:#10b981; }
+    .badge-manipulated { background:#ef4444; }
+    .section { margin-bottom:25px; page-break-inside: avoid; }
+    .section-title { font-size:12px; font-weight:800; text-transform:uppercase; color:#6b7280; border-bottom:1px solid #e5e7eb; padding-bottom:5px; margin-bottom:12px; }
+    .card { background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:15px; }
+    .summary-text { font-size:14px; color:#374151; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+    .footer { display:flex; justify-content:space-between; align-items:center; margin-top:40px; padding-top:20px; border-top:1px solid #e5e7eb; font-size:10px; color:#9ca3af; }
+</style></head><body>
+    <div class="header">
+        <h1>🛡️ PHANTOMPROOF.ai</h1>
+        <p>Advanced Forensic Media Authentication • Generated ${now}</p>
+        <div class="badge ${result.verdict === 'VERIFIED' ? 'badge-verified' : 'badge-manipulated'}">
+            ${result.verdict} — ${result.authenticity_score?.toFixed(1) || 0}%
+        </div>
+    </div>
 
-            // Now download it
-            const downloadResponse = await fetch(`http://localhost:8000/report/download/${fileId}`);
-            if (!downloadResponse.ok) throw new Error("Failed to download PDF.");
+    <div class="section">
+        <div class="section-title">Executive Summary</div>
+        <div class="card">
+            <p class="summary-text">${result.executive_summary?.[selectedLang] || result.executive_summary?.en || "No summary available."}</p>
+        </div>
+    </div>
 
-            const blob = await downloadResponse.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = `PhantomProof_Report_${fileId}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
+    <div class="grid">
+        <div class="section">
+            <div class="section-title">Forensic Signal Breakdown</div>
+            <div class="card">${signalsHtml}</div>
+        </div>
+        <div class="section">
+            <div class="section-title">OSINT & Metadata Verification</div>
+            <div class="card">
+                <p style="font-size:13px; color:#374151;">${result.explanation || "No OSINT findings reported."}</p>
+                <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:5px;">
+                    ${(result.matched_sources || []).map(s => `<span style="font-size:10px; background:#dbeafe; color:#1e40af; padding:2px 8px; border-radius:10px;">${s}</span>`).join('')}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">AI Ensemble Analysis</div>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:14px;">AI Generation Likelihood</span>
+                <span style="font-size:24px; font-weight:900;">${result.ai_ensemble?.total_ai_score?.toFixed(1) || 0}%</span>
+            </div>
+            <p style="font-size:12px; color:#6b7280; margin-top:8px;">Signals: ${Object.keys(result.ai_ensemble?.model_breakdown || {}).join(', ')}</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>
+            <p><strong>PHANTOMPROOF.ai — Digital Trust & Asset Verification</strong></p>
+            <p>This document serves as primary forensic evidence. Report ID: ${fileId}</p>
+            <p style="margin-top:5px;">Verification: Visit ${qrUrl}</p>
+        </div>
+        <div>${qrSvgString}</div>
+    </div>
+</body></html>`;
+
+            const opt = {
+                margin: 10,
+                filename: `PhantomProof_Forensics_Report_${fileId}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Create a temporary hidden element to render the HTML string
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '0';
+            container.innerHTML = html;
+            document.body.appendChild(container);
+
+            try {
+                // Generate the PDF from the temp element
+                const pdfBlob = await html2pdf().from(container).set(opt).output('blob');
+                const url = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = opt.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                document.body.removeChild(container);
+            } catch (err) {
+                console.error("PDF Generation Error:", err);
+                document.body.removeChild(container);
+                alert("Error generating PDF: " + err.message);
+            }
         } catch (error) {
             console.error(error);
-            alert("Error downloading report: " + error.message);
+            alert("Error preparing report: " + error.message);
         }
     };
 
@@ -96,18 +176,7 @@ export default function ReportViewer({ scanResult }) {
 
     return (
         <div className="w-full mx-auto rounded-3xl overflow-hidden glass-panel-heavy flex flex-col mt-4">
-            {/* LANGUAGE SWITCHER */}
-            <div className="flex flex-wrap items-center justify-center p-4 bg-black/40 border-b border-white/10 gap-2">
-                {languages.map(l => (
-                    <button
-                        key={l.code}
-                        onClick={() => setLang(l.code)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${lang === l.code ? 'bg-blue-600/20 border-blue-500 text-blue-300' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-gray-200'}`}
-                    >
-                        {l.flag} {l.name}
-                    </button>
-                ))}
-            </div>
+            {/* LANGUAGE SWITCHER REMOVED */}
 
             <div className="p-8 space-y-8">
                 {/* EXECUTIVE SUMMARY */}
