@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { UploadCloud, FileImage, ShieldCheck, ShieldAlert, Brain, Search, FileText, AlertTriangle } from 'lucide-react';
+import API_URL from '../config.js';
 
 export default function Scanner() {
     const [file, setFile] = useState(null);
@@ -55,7 +56,7 @@ export default function Scanner() {
         formData.append('file', file);
 
         try {
-            const response = await axios.post('http://localhost:8000/scan/', formData, {
+            const response = await axios.post(`${API_URL}/scan/`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -66,7 +67,7 @@ export default function Scanner() {
             setError(err.response?.data?.detail || err.message || 'An error occurred during scanning.');
             // Hackathon fallback for visual demo if backend is entirely unreachable
             if (err.message === 'Network Error') {
-                setError('Network Error: Could not reach localhost:8000. Ensure backend is running and CORS is enabled.');
+                setError('Network Error: Could not reach the API server. Ensure backend is running and CORS is enabled.');
             }
         } finally {
             setIsScanning(false);

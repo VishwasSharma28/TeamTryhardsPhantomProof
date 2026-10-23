@@ -3,6 +3,7 @@ import axios from 'axios';
 import html2pdf from 'html2pdf.js';
 import { QRCodeSVG } from 'qrcode.react';
 import { renderToString } from 'react-dom/server';
+import API_URL from '../config.js';
 
 const FakeNewsPage = () => {
   const [file, setFile] = useState(null);
@@ -24,17 +25,17 @@ const FakeNewsPage = () => {
       // Step 1: Upload
       const formData = new FormData();
       formData.append('file', selectedFile);
-      const uploadRes = await axios.post('http://localhost:8000/upload/', formData, {
+      const uploadRes = await axios.post(`${API_URL}/upload/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       const file_id = uploadRes.data.file_id;
 
       // Step 2: OCR → extract text
-      const analyzeRes = await axios.post('http://localhost:8000/analyze/', { file_id });
+      const analyzeRes = await axios.post(`${API_URL}/analyze/`, { file_id });
       const extracted_text = analyzeRes.data.extracted_text || analyzeRes.data.ocr?.extracted_text || '';
 
       // Step 3: OSINT verify
-      const osintRes = await axios.post('http://localhost:8000/osint/verify', {
+      const osintRes = await axios.post(`${API_URL}/osint/verify`, {
         claim_text: extracted_text
       });
 
