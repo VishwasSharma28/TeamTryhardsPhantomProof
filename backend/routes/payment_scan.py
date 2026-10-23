@@ -1,3 +1,32 @@
+"""
+=============================================================================
+payment_scan.py — Fake UPI Payment Receipt & Transaction Fraud Scanner
+=============================================================================
+ROLE IN THE ARCHITECTURE:
+  Scammers frequently use "Prank / Spoof UPI Payment" mobile apps to generate
+  counterfeit payment screenshots (Paytm, Google Pay, PhonePe) to trick merchants
+  into believing money has been transferred.
+
+HOW IT WORKS (MULTI-MODAL FRAUD SCORING):
+  1. Optical Character Recognition (OCR):
+     Extracts all text fields from the screenshot.
+  2. Financial Field Extraction:
+     Extracts the UTR (Unique Transaction Reference), Transfer Amount, Bank Name,
+     and Date/Time stamp using regular expressions.
+  3. UTR Validity & Pattern Analysis:
+     Real UPI UTRs are 12 alphanumeric characters. Spoof generators typically output
+     all-numeric patterns, repeated digits (e.g. '111111111111'), or sequential numbers.
+  4. Visual Forensics & EXIF Check:
+     Runs Error Level Analysis (ELA) to see if the amount was edited or pasted,
+     and inspects EXIF metadata for image editors.
+  5. Multi-Signal Penalty & Credit Scoring:
+     Computes a composite `fraud_score` (0 to 100).
+     - <= 30: "Likely Genuine"
+     - 31 to 50: "Suspicious"
+     - > 50: "Likely Fraud"
+=============================================================================
+"""
+
 from fastapi import APIRouter, UploadFile, File
 from fastapi.concurrency import run_in_threadpool
 import os
@@ -14,7 +43,11 @@ UPLOAD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..",
 
 @router.post("/scan/payment", response_model=PaymentResult)
 async def scan_payment(file: UploadFile = File(...)):
-    # Save image
+    """
+    HTTP POST Endpoint: /scan/payment
+    Receives an uploaded payment screenshot and offloads heavy OCR + CV forensics
+    to a worker threadpool to keep the server responsive.
+    """
     file_bytes = await file.read()
     filename = file.filename
     # Run OCR + forensics in a worker thread so the event loop stays responsive.
@@ -22,25 +55,35 @@ async def scan_payment(file: UploadFile = File(...)):
 
 
 def _run_payment_scan(file_bytes: bytes, filename: str) -> PaymentResult:
+    """
+    Executes the receipt forensics pipeline: OCR extraction, UTR check, and fraud scoring.
+
+    Parameters:
+        file_bytes: Raw binary content of the uploaded file.
+        filename: Name of the uploaded file.
+
+    Returns:
+        PaymentResult: Validated fields (amount, bank, UTR) and verdict.
+    """
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     image_path = os.path.join(UPLOAD_DIR, filename)
     with open(image_path, "wb") as f:
         f.write(file_bytes)
         
-    # 1. OCR Extraction
+    # Step 1: Extract all text visible in the receipt image
     text = extract_text(image_path)
     
-    # 2. Extract payment fields
+    # Step 2: Extract structured financial entities (Amount, UTR, Bank)
     fields = extract_fields(text)
     amount = fields["amount"]
     utr = fields["utr"]
     bank = fields["bank"]
     
-    # 3. Validate UTR
+    # Step 3: Validate UTR format (must be 12 alphanumeric characters)
     utr_valid = validate_utr(utr)
     invalid_utr = not utr_valid if utr else True
         
-    # 4. Advanced Image Forensics
+    # Step 4: Digital Image Forensics Checks
     ela_result = analyze_ela(image_path)
     tampering_detected = ela_result["tampering_detected"]
     
@@ -50,15 +93,16 @@ def _run_payment_scan(file_bytes: bytes, filename: str) -> PaymentResult:
     copy_move_detected = check_copy_move_forgery(image_path)
     has_profile_face = detect_profile_faces(image_path)
     
-    # 5. Layout Consistency Check
+    # Step 5: UPI Layout Consistency Check
     layout_result = check_layout(fields, text)
     layout_anomaly = layout_result["layout_anomaly"]
     
-    # 6. Fraud Scoring System
+    # Step 6: Multi-Signal Fraud Scoring
     fraud_score = 0
     explanations = []
     
     text_lower = text.lower()
+    # Watermarks or words left behind by spoof APKs (e.g. 'spoof', 'prank payment')
     fake_keywords = ["spoof", "fake", "prank", "demo", "mock", "simulator", "generator"]
     is_spoof_app = any(kw in text_lower for kw in fake_keywords)
     
@@ -74,36 +118,36 @@ def _run_payment_scan(file_bytes: bytes, filename: str) -> PaymentResult:
     date_pattern = re.compile(r"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}")
     no_timestamp_found = not (time_pattern.search(text) or date_pattern.search(text))
     
-    # Critical Fraud Indicators
+    # Critical Fraud Indicators (High Penalty)
     if is_spoof_app:
-        fraud_score += 60
+        fraud_score += 60  # Definite indicator of fake payment generation software
         explanations.append("🚨 Detected text commonly used by fake/spoof payment generator apps.")
     
     if suspicious_software:
-        fraud_score += 50
+        fraud_score += 50  # Image was modified in an image editing tool
         software_name = exif_data.get('software_signature', 'Editing Software')
         explanations.append(f"🚨 EXIF Metadata indicates this image was edited using {software_name.title()}.")
         
     if copy_move_detected:
-        fraud_score += 40
+        fraud_score += 40  # Duplicated regions detected on the receipt
         explanations.append("🚨 Forensics detected cloned/copy-moved regions in the image.")
         
     if tampering_detected:
-        fraud_score += 40
+        fraud_score += 40  # Inconsistent compression levels (e.g. pasted amount or UTR)
         explanations.append("🚨 Error Level Analysis (ELA) detected signs of digital manipulation or pasted text.")
         
-    # UTR Validations
+    # UTR Validations (Medium Penalty)
     if invalid_utr:
         fraud_score += 40
         explanations.append("⚠️ Missing or invalid UTR format (must be 12 alphanumeric characters).")
     if funny_utr:
-        fraud_score += 30
+        fraud_score += 30  # Repeating or sequential numbers (e.g. 123456789012)
         explanations.append("⚠️ The UTR contains suspicious repeating or sequential patterns.")
     elif utr_numeric_only:
-        fraud_score += 20
+        fraud_score += 20  # Genuine UPI transaction references almost always contain letters
         explanations.append("⚠️ The UTR contains only numbers, whereas legitimate UPI UTRs usually contain letters.")
         
-    # Missing Elements & Minor Anomalies
+    # Missing Elements & Minor Anomalies (Low Penalty)
     if not bank:
         fraud_score += 20
         explanations.append("⚠️ No recognizable banking institution could be found on the receipt.")
@@ -120,7 +164,7 @@ def _run_payment_scan(file_bytes: bytes, filename: str) -> PaymentResult:
         fraud_score += 5
         explanations.append("ℹ️ Missing a valid transaction date or time.")
         
-    # Genuine Adjusters (Decrease score)
+    # Genuine Adjusters (Credits: decrease the suspicion score)
     if has_success_label:
         fraud_score -= 5
         explanations.append("✅ Detected legitimate transaction success labels.")
@@ -128,11 +172,13 @@ def _run_payment_scan(file_bytes: bytes, filename: str) -> PaymentResult:
         fraud_score -= 10
         explanations.append("✅ A human face was detected in a profile picture area, increasing legitimacy.")
         
+    # Clamp final score between 0 and 100
     fraud_score = max(0, min(100, fraud_score))
     
     if len(explanations) == 0:
         explanations.append("All checks passed. No suspicious patterns were found in the text or image metadata.")
     
+    # Final Verdict Thresholding
     if fraud_score <= 30:
         verdict = "Likely Genuine"
     elif fraud_score <= 50:

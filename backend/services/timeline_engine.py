@@ -1,11 +1,29 @@
 """
-timeline_engine.py
-Misinformation Timeline Reconstruction Engine for PHANTOMPROOF.ai.
+=============================================================================
+timeline_engine.py — Misinformation Timeline Reconstruction Engine
+=============================================================================
+ROLE IN THE ARCHITECTURE:
+  One of the most dangerous forms of deception is "recycled misinformation" —
+  an old photograph from an earthquake or protest in 2018 recirculated in 2026
+  with a brand new fake caption.
 
-Uses sentence-transformers to semantically match extracted OCR text against
-known misinformation cases. If a match is found, reconstructs the historical
-spread timeline. Designed to fail gracefully — missing datasets or lack of
-matches will never crash the pipeline.
+HOW IT WORKS (SEMANTIC VECTOR SEARCH):
+  1. Dense Embedding:
+     Uses Sentence-Transformers ('all-MiniLM-L6-v2') to convert the raw OCR
+     text into a 384-dimensional semantic embedding vector.
+  2. Cosine Similarity Matching:
+     Compares this vector against a curated knowledge bank of known historical
+     misinformation cases (`data/misinformation_cases.json`).
+  3. Timeline Chronology Reconstruction:
+     If cosine similarity exceeds the 0.65 (65%) threshold, it reconstructs:
+       - When the image was originally taken (Original Date).
+       - When it was weaponized / recirculated with a fake claim (Misuse Date).
+       - When fact-checkers verified it and what sources covered it.
+
+SAFETY & FAIL-SAFE DESIGN:
+  If no match is found, or if embeddings cannot be computed, it gracefully
+  returns an informative empty timeline so the primary scan pipeline never breaks.
+=============================================================================
 """
 
 from __future__ import annotations
@@ -22,22 +40,28 @@ _dataset_cache: list[dict[str, Any]] | None = None
 
 
 def _get_encoder():
-    """Load the sentence transformer model once, on first use."""
+    """
+    Loads the SentenceTransformer 'all-MiniLM-L6-v2' model once into memory.
+    Transforms raw text sentences into 384-dimensional dense vectors on CPU.
+    """
     global _encoder
     if _encoder is not None:
         return _encoder
     try:
         from sentence_transformers import SentenceTransformer
         _encoder = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
-        print("✅ Timeline Engine text encoder loaded (all-MiniLM-L6-v2)")
+        print("[timeline_engine] Text encoder loaded (all-MiniLM-L6-v2)")
     except Exception as exc:
-        print(f"⚠️  Timeline Engine encoder failed to load: {exc}")
+        print(f"[timeline_engine] Text encoder failed to load: {exc}")
         _encoder = None
     return _encoder
 
 
 def _load_dataset() -> list[dict[str, Any]]:
-    """Safely load the misinformation cases dataset."""
+    """
+    Safely loads the ground-truth misinformation database from data/misinformation_cases.json.
+    Uses 'utf-8-sig' encoding to automatically handle byte order marks (BOM).
+    """
     global _dataset_cache
     if _dataset_cache is not None:
         return _dataset_cache
@@ -47,7 +71,7 @@ def _load_dataset() -> list[dict[str, Any]]:
     )
     try:
         if not os.path.exists(dataset_path):
-            print(f"⚠️  Timeline Engine dataset not found: {dataset_path}")
+            print(f"[timeline_engine] Dataset not found: {dataset_path}")
             _dataset_cache = []
             return _dataset_cache
             
@@ -56,10 +80,10 @@ def _load_dataset() -> list[dict[str, Any]]:
             if isinstance(data, list):
                 _dataset_cache = data
             else:
-                print("⚠️  Timeline Engine dataset is not a JSON array.")
+                print("[timeline_engine] Dataset is not a JSON array.")
                 _dataset_cache = []
     except Exception as exc:
-        print(f"⚠️  Timeline Engine failed to load dataset: {exc}")
+        print(f"[timeline_engine] Failed to load dataset: {exc}")
         _dataset_cache = []
         
     return _dataset_cache
@@ -69,22 +93,19 @@ def _load_dataset() -> list[dict[str, Any]]:
 
 def generate_timeline(analysis_results: dict[str, Any]) -> dict[str, Any]:
     """
-    Match OCR text against misinformation dataset and reconstruct a timeline.
+    Matches extracted OCR text against known misinformation cases to construct a timeline.
 
-    Parameters
-    ----------
-    analysis_results : dict
-        Dict containing at minimum 'ocr_text'.
+    Parameters:
+        analysis_results (dict): Dictionary containing 'ocr_text'.
 
-    Returns
-    -------
-    dict with keys:
-        timeline             – list[dict] of chronological events
-        timeline_explanation – str natural language narrative
-        matched_case         – dict structure or None
+    Returns:
+        dict:
+            - 'timeline': List of chronological events sorted by date.
+            - 'timeline_explanation': Human-readable narrative detailing when the claim evolved.
+            - 'matched_case': Information about the matching historical case (similarity, ID, refs).
     """
     
-    # 1. Fallback base representation
+    # 1. Fallback base representation returned when no match exists
     fallback = {
         "timeline": [],
         "timeline_explanation": (
@@ -96,6 +117,7 @@ def generate_timeline(analysis_results: dict[str, Any]) -> dict[str, Any]:
 
     try:
         ocr_text = (analysis_results.get("ocr_text") or "").strip()
+        # Require at least 10 characters to perform semantic search
         if len(ocr_text) < 10:
             return fallback
 
@@ -107,17 +129,16 @@ def generate_timeline(analysis_results: dict[str, Any]) -> dict[str, Any]:
         if encoder is None:
             return fallback
             
-        # 2. Compute similarity
-        # In a real system you'd vectorize the dataset once and use FAISS.
-        # For a hackathon / minimal scale, iterating is completely fine.
+        # 2. Compute similarity via Cosine Distance
+        # Vectorize the extracted OCR claim text
         best_match = None
         best_sim = -1.0
         
-        # We need cosine similarity from scipy
         from scipy.spatial.distance import cosine
         
         ocr_vector = encoder.encode(ocr_text)
         
+        # Compare query vector with every known claim in the dataset
         for case in dataset:
             claim = str(case.get("claim", ""))
             if not claim:
@@ -125,22 +146,22 @@ def generate_timeline(analysis_results: dict[str, Any]) -> dict[str, Any]:
                 
             claim_vector = encoder.encode(claim)
             
-            # cosine() returns distance (0 to 2), so sim is 1 - distance
+            # scipy.spatial.distance.cosine returns distance (0=identical, 1=orthogonal).
+            # Similarity = 1.0 - distance.
             sim = 1.0 - float(cosine(ocr_vector, claim_vector))
             
             if sim > best_sim:
                 best_sim = sim
                 best_match = case
 
-        # 3. Handle matches
+        # 3. Match Threshold Check: Require at least 65% semantic similarity
         if best_match is None or best_sim < 0.65:
-            # Threshold ensures weak matches are rejected
             return fallback
             
         # 4. Reconstruct timeline events
         timeline = best_match.get("timeline", [])
         
-        # If the dataset case doesn't have an explicit timeline array, build a basic one
+        # If case doesn't have an explicit timeline array, synthesize one from metadata dates
         if not timeline:
             if best_match.get("original_date"):
                 timeline.append({
@@ -169,7 +190,7 @@ def generate_timeline(analysis_results: dict[str, Any]) -> dict[str, Any]:
             "references": best_match.get("references", []),
         }
 
-        # 6. Generate narrative
+        # 6. Generate natural language timeline narrative
         verdict = best_match.get("verdict", "MISLEADING").upper()
         
         parts = [
@@ -213,6 +234,6 @@ def generate_timeline(analysis_results: dict[str, Any]) -> dict[str, Any]:
         }
 
     except Exception as exc:
-        print(f"⚠️  Timeline Engine generated an error: {exc}")
+        print(f"[timeline_engine] Timeline generation error: {exc}")
         traceback.print_exc()
         return fallback

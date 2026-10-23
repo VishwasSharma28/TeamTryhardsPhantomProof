@@ -1,7 +1,25 @@
 """
-report_generator.py
-Generates a ReportLab-based PDF forensic case file for PHANTOMPROOF.ai.
-Requires: reportlab  (pip install reportlab)
+=============================================================================
+report_generator.py — Forensic PDF Generator & Multi-Signal Synthesis Engine
+=============================================================================
+ROLE IN THE ARCHITECTURE:
+  This module serves two central functions in PHANTOMPROOF.ai:
+    1. Score & Report Synthesis (`generate_explainable_report`):
+       Consolidates signals from the AI detector, forensics engine, and OSINT
+       agent into a structured dictionary used by the React dashboard.
+    2. Professional Forensic PDF Generation (`generate_pdf_report`):
+       Compiles a multi-page, court-admissible PDF document containing:
+         - Executive summary and color-coded risk badge (Authentic / Suspicious / Fake).
+         - Forensic score breakdown tables with exact weightings.
+         - Embedded Error Level Analysis (ELA) false-color heatmap image.
+         - Explainable AI reasoning trail.
+         - Misinformation timeline reconstruction.
+         - Cryptographic SHA-256 digital watermark and QR code verification link.
+
+TECHNOLOGY:
+  Uses Python's `reportlab` library (SimpleDocTemplate, TableStyle, Paragraphs)
+  and `qrcode` library for dynamic verification watermarking.
+=============================================================================
 """
 
 from __future__ import annotations

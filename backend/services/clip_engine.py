@@ -1,12 +1,28 @@
 """
-clip_engine.py
-Lightweight CLIP-based semantic image classifier for PHANTOMPROOF.ai.
+=============================================================================
+clip_engine.py — Multimodal Zero-Shot Semantic Image Categorizer
+=============================================================================
+ROLE IN THE ARCHITECTURE:
+  While forensic algorithms inspect raw pixels (ELA, noise) and OCR extracts text,
+  CLIP provides HIGH-LEVEL SEMANTIC UNDERSTANDING of the scene.
+  It answers: "What KIND of image is this?"
+    - Is it a news screenshot?
+    - An edited viral meme?
+    - An AI-generated synthetic picture?
+    - An authentic camera photograph?
+    - An official scanned document?
 
-Uses HuggingFace transformers zero-shot image classification
-(openai/clip-vit-base-patch32) to categorise uploaded images into
-forensic-relevant types such as "news_screenshot", "edited_meme", etc.
+HOW IT WORKS (OPENAI CLIP):
+  Uses 'openai/clip-vit-base-patch32' via HuggingFace's zero-shot pipeline.
+  CLIP maps both images and natural language text into a shared embedding space.
+  By comparing the visual vector with 8 candidate text descriptions, it identifies
+  the highest-probability scene category without requiring task-specific training.
 
-Designed to fail gracefully — CLIP failure never breaks the scan pipeline.
+SAFETY & FAIL-SAFE DESIGN:
+  Designed with graceful degradation: if model loading or inference encounters an
+  issue, it logs a warning and returns safe fallback categories so the primary
+  forensic scan pipeline never fails for the user.
+=============================================================================
 """
 
 from __future__ import annotations
@@ -18,7 +34,7 @@ from PIL import Image
 
 # ── Label mappings ────────────────────────────────────────────────────────────
 
-# Human-readable labels used as CLIP candidate texts
+# Natural language prompts passed to CLIP's text encoder
 CANDIDATE_LABELS: list[str] = [
     "authentic photograph",
     "news screenshot",
@@ -30,7 +46,7 @@ CANDIDATE_LABELS: list[str] = [
     "digital poster",
 ]
 
-# Normalised internal key for each candidate (same order)
+# Normalized programmatic identifiers matching the order of CANDIDATE_LABELS
 _INTERNAL_KEYS: list[str] = [
     "authentic_photograph",
     "news_screenshot",
@@ -42,10 +58,10 @@ _INTERNAL_KEYS: list[str] = [
     "digital_poster",
 ]
 
-# Map human-readable → internal key
+# Mapping dictionary: natural language label -> programmatic key
 _LABEL_TO_KEY: dict[str, str] = dict(zip(CANDIDATE_LABELS, _INTERNAL_KEYS))
 
-# Semantic-flag templates keyed by internal label
+# Contextual forensic observations attached to each detected category
 _FLAG_TEMPLATES: dict[str, list[str]] = {
     "authentic_photograph": [
         "visual composition is consistent with an authentic camera photograph",
@@ -87,7 +103,10 @@ _classifier = None
 
 
 def _get_classifier():
-    """Load the CLIP pipeline once, on first use."""
+    """
+    Initializes the HuggingFace zero-shot image classification pipeline once on demand.
+    Loads 'openai/clip-vit-base-patch32' on CPU (`device=-1`).
+    """
     global _classifier
     if _classifier is not None:
         return _classifier
@@ -97,7 +116,7 @@ def _get_classifier():
         _classifier = hf_pipeline(
             "zero-shot-image-classification",
             model="openai/clip-vit-base-patch32",
-            device=-1,  # CPU — safe for all environments
+            device=-1,  # CPU execution for portable deployment
         )
         print("[clip_engine] CLIP classifier loaded (openai/clip-vit-base-patch32)")
     except Exception as exc:
@@ -106,8 +125,7 @@ def _get_classifier():
     return _classifier
 
 
-# ── Safe fallback ─────────────────────────────────────────────────────────────
-
+# Safe fallback dictionary returned if inference cannot complete
 _FALLBACK: dict[str, Any] = {
     "label": "unknown",
     "confidence": 0.0,
@@ -116,25 +134,19 @@ _FALLBACK: dict[str, Any] = {
 }
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
-
-
 def classify_image(image_path: str) -> dict[str, Any]:
     """
-    Classify an image into one of the forensic-relevant semantic categories.
+    Categorizes an image into one of the 8 forensic-relevant semantic classes.
 
-    Parameters
-    ----------
-    image_path : str
-        Absolute path to the image file on disk.
+    Parameters:
+        image_path (str): File system path to the target image.
 
-    Returns
-    -------
-    dict with keys:
-        label            – internal normalised label (str)
-        confidence       – 0.0-1.0 float for the winning label
-        semantic_flags   – list[str] human-readable observations
-        candidate_scores – dict[str, float] all candidate scores
+    Returns:
+        dict:
+            - 'label': Winning category key (e.g., 'news_screenshot').
+            - 'confidence': Probability score of the top candidate (0.0 to 1.0).
+            - 'semantic_flags': Human-readable observations explaining why this class was chosen.
+            - 'candidate_scores': Complete probability distribution across all 8 classes.
     """
     try:
         clf = _get_classifier()
@@ -143,21 +155,21 @@ def classify_image(image_path: str) -> dict[str, Any]:
 
         img = Image.open(image_path).convert("RGB")
 
+        # Runs zero-shot image classification comparing the visual embedding with all text labels
         results = clf(img, candidate_labels=CANDIDATE_LABELS)
-        # results is a list of dicts: [{"label": ..., "score": ...}, ...]
 
-        # Build candidate_scores mapping (internal_key → score)
+        # Map results into internal programmatic keys
         candidate_scores: dict[str, float] = {}
         for item in results:
             key = _LABEL_TO_KEY.get(item["label"], item["label"])
             candidate_scores[key] = round(item["score"], 4)
 
-        # Winner
+        # Select the highest-probability winning class
         top = results[0]
         winning_key = _LABEL_TO_KEY.get(top["label"], top["label"])
         winning_confidence = round(top["score"], 4)
 
-        # Semantic flags for the winning label
+        # Retrieve contextual forensic explanation templates for the winning class
         semantic_flags = list(_FLAG_TEMPLATES.get(winning_key, []))
 
         return {

@@ -1,6 +1,35 @@
+"""
+=============================================================================
+osint_agent.py — Multi-Layered OSINT (Open-Source Intelligence) Verifier
+=============================================================================
+ROLE IN THE ARCHITECTURE:
+  Analyzes text claims extracted via OCR. While computer vision evaluates
+  pixels, OSINT evaluates FACTS.
+  It determines if a headline, circular, or viral WhatsApp claim is real, fake,
+  or a scam by cross-referencing verified databases and applying NLP models.
+
+FOUR-LAYER VERIFICATION PIPELINE:
+  1. Multilingual Translation:
+     Detects Indic scripts and translates them to English via MarianMT
+     ('Helsinki-NLP/opus-mt-mul-en').
+  2. Layer 1 — Known Hoax Fingerprint Database:
+     Instant matching against common scam patterns (fake UPI cashback, lottery,
+     lockdown rumors, fabricated quotes).
+  3. Layer 2 — RoBERTa Fake News NLP Model:
+     Transformer classifier ('hamzab/roberta-fake-news-classification') trained
+     on misinformation language patterns.
+  4. Layer 3 — Live Fact-Checker Feeds (RAG):
+     Searches RSS feeds of certified fact-checkers (AltNews, BOOM Live, PIB Fact Check).
+  5. Layer 4 — Linguistic Credibility Shift:
+     Analyzes urgency signals ('share immediately', 'forward this') vs
+     official credibility tokens ('press release', 'dated', 'reference no').
+=============================================================================
+"""
+
 import feedparser
 from typing import Dict
 
+# Certified fact-checking and government verification RSS feeds
 RSS_FEEDS = [
     "https://www.boomlive.in/feed",
     "https://www.altnews.in/feed",
@@ -8,6 +37,7 @@ RSS_FEEDS = [
     "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3",
 ]
 
+# Fast pattern fingerprints for high-frequency viral scams and hoaxes
 FINGERPRINTS = {
     'lockdown': {'verdict': 'FALSE', 'fingerprint': 'LOCKDOWN_HOAX_2021',
         'explanation': 'Matches known lockdown hoax pattern circulated in 2021.'},
@@ -35,6 +65,10 @@ _translator_tokenizer = None
 
 
 def _get_translator():
+    """
+    Loads Helsinki-NLP/opus-mt-mul-en multilingual neural machine translation model.
+    Translates multiple Indian languages into English so English NLP models can process them.
+    """
     global _translator_model, _translator_tokenizer
     if _translator_model is None:
         try:
@@ -43,7 +77,7 @@ def _get_translator():
             name = 'Helsinki-NLP/opus-mt-mul-en'
             _translator_tokenizer = MarianTokenizer.from_pretrained(name)
             _translator_model = MarianMTModel.from_pretrained(name)
-            print("[osint_agent] Translator loaded ✅")
+            print("[osint_agent] Translator loaded successfully")
         except Exception as e:
             print(f"[osint_agent] Translator load failed: {e}")
             _translator_model = False
@@ -51,6 +85,10 @@ def _get_translator():
 
 
 def _get_classifier():
+    """
+    Loads the RoBERTa fake news classification pipeline ('hamzab/roberta-fake-news-classification').
+    Fine-tuned on labeled news articles to differentiate authentic journalism from fabricated claims.
+    """
     global _classifier
     if _classifier is None:
         try:
@@ -60,7 +98,7 @@ def _get_classifier():
                 "text-classification",
                 model="hamzab/roberta-fake-news-classification"
             )
-            print("[osint_agent] RoBERTa loaded ✅")
+            print("[osint_agent] RoBERTa loaded successfully")
         except Exception as e:
             print(f"[osint_agent] RoBERTa load failed: {e}")
             _classifier = False
@@ -68,6 +106,9 @@ def _get_classifier():
 
 
 def _detect_language(text: str) -> str:
+    """
+    Determines if the text contains non-Latin Unicode characters (e.g., Devanagari, Tamil, Bengali).
+    """
     for ch in text:
         cp = ord(ch)
         if (0x0900 <= cp <= 0x097F or 0x0980 <= cp <= 0x09FF or

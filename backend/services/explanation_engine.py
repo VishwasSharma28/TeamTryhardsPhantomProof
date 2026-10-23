@@ -1,9 +1,30 @@
 """
-explanation_engine.py
-Generates structured, natural-language forensic explanations for PHANTOMPROOF.ai.
+=============================================================================
+explanation_engine.py — Four-Pillar Explainable AI (XAI) Evidence Engine
+=============================================================================
+ROLE IN THE ARCHITECTURE:
+  In legal forensics, investigative journalism, and financial fraud, a black-box
+  score ("92% Fake") is unacceptable. Investigators need to know:
+    - What is suspicious?
+    - Why is it suspicious?
+    - What evidence supports that claim?
 
-Pure Python — no ML dependencies.  Every sentence is dynamically derived from
-actual analysis scores; no generic filler text is used.
+THE FOUR PILLARS OF EVIDENCE:
+  1. Digital Forensics:
+     Explains pixel-level anomalies (ELA compression artifacts, missing EXIF tags).
+  2. Contextual Analysis:
+     Explains the high-level semantic scene (CLIP classification, e.g. meme vs news)
+     and extracted OCR claims.
+  3. Logical Consistency:
+     Cross-corroborates whether the visual context matches the factual claim,
+     evaluating OSINT fact-checker contradictions or confirmations.
+  4. Final Conclusion & Actionable Verdict:
+     Summarizes the findings into clear guidance (Authentic, Suspicious, or Fabricated).
+
+DESIGN:
+  Deterministic Natural Language Generation (NLG) in pure Python. Every statement
+  is mathematically tied to underlying scores without generic hallucinated text.
+=============================================================================
 """
 
 from __future__ import annotations

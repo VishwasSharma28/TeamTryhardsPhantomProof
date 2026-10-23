@@ -1,3 +1,32 @@
+/**
+ * =============================================================================
+ * ReportViewer.jsx — Forensic Analysis Dashboard & Report Presentation Component
+ * =============================================================================
+ * ROLE IN THE ARCHITECTURE:
+ *   This is the primary presentation component for PHANTOMPROOF.ai.
+ *   After the FastAPI backend analyzes an uploaded image, this component receives
+ *   the `scanResult` JSON and transforms raw numerical scores into an interactive,
+ *   auditable, and visually compelling forensic dashboard.
+ * 
+ * CORE VISUAL MODULES:
+ *   1. Executive Verdict & Confidence Gauge:
+ *      Large color-coded status badge (Authentic / Suspicious / AI-Generated)
+ *      with calibrated confidence percentage.
+ *   2. AIDetectionCard Sub-Component:
+ *      Displays the HuggingFace Vision Transformer probability and backup CV metrics
+ *      (sharpness variance, horizontal symmetry, color distribution).
+ *   3. ELA Heatmap Viewer:
+ *      Visualizes Error Level Analysis false-color heatmaps (highlighting tampered regions).
+ *   4. Four-Pillar Explainable AI Accordion:
+ *      Expandable cards for Digital Forensics, Contextual Analysis, Logical Consistency,
+ *      and Final Conclusion.
+ *   5. Misinformation Timeline:
+ *      Displays historical case matches, prior publication dates, and debunk links.
+ *   6. Downloadable Forensic PDF:
+ *      Generates a branded case-file report with a scannable QR verification code.
+ * =============================================================================
+ */
+
 import React, { useState } from 'react';
 import { translations } from '../i18n/translations';
 import AIDetectionCard from './AIDetectionCard';
