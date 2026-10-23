@@ -1,7 +1,22 @@
+// ==============================================================================
+// sidebar.js - PHANTOMPROOF Chrome Extension Sidebar Controller
+// ==============================================================================
+// Runs inside the sidebar iframe (sidebar.html).
+// Responsibilities:
+// 1. Manages scan modes: "payment" (UPI receipt), "deepfake" (AI image), "fakenews" (misinformation).
+// 2. Communicates with parent webpage (content.js) via postMessage to trigger screen cropping.
+// 3. Sends cropped images to the FastAPI backend (/scan/payment, /scan/image, /analyze/).
+// 4. Renders forensic score cards, verdicts, and security checks in the sidebar UI.
+// ==============================================================================
+
+// Active scan mode: "payment", "deepfake", or "fakenews"
 let currentMode = "payment"; 
+
+// Stores base64 data URL of the cropped screenshot
 let currentSnapshotDataUrl = null;
 
 document.addEventListener("DOMContentLoaded", () => {
+    // DOM Elements - Inputs and Buttons
     const urlInput = document.getElementById("backend-url");
     const btnSaveUrl = document.getElementById("btn-save-url");
     const btnClose = document.getElementById("btn-close");
@@ -9,33 +24,42 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnRetake = document.getElementById("btn-retake");
     const btnAnalyze = document.getElementById("btn-analyze");
 
+    // DOM Elements - Image Containers
     const placeholderBox = document.getElementById("capture-placeholder");
     const snapshotBox = document.getElementById("snapshot-box");
     const imgSnapshot = document.getElementById("snapshot-img");
 
+    // DOM Elements - Results and Errors
     const errorBox = document.getElementById("error-box");
     const resultContainer = document.getElementById("dynamic-result-container");
 
     const tabs = document.querySelectorAll(".tab-btn");
 
-    // TABS
+    // --------------------------------------------------------------------------
+    // 1. TAB SWITCHING (Payment vs Deepfake vs Fake News)
+    // --------------------------------------------------------------------------
     tabs.forEach(btn => {
         btn.addEventListener("click", () => {
+            // Highlight the active tab button
             tabs.forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             currentMode = btn.dataset.mode;
             
-            // Just clear the results, keep image if any
+            // Clear previous scan results while keeping the cropped image intact
             resultContainer.innerHTML = "";
             errorBox.style.display = "none";
         });
     });
 
-    // STORAGE
+    // --------------------------------------------------------------------------
+    // 2. BACKEND API URL CONFIGURATION (Saved in Chrome Storage)
+    // --------------------------------------------------------------------------
+    // Load previously saved backend URL (default: http://localhost:8000)
     chrome.storage.local.get(["phantomproof_base_url"], (res) => {
         if (res.phantomproof_base_url) urlInput.value = res.phantomproof_base_url;
     });
 
+    // Save custom backend URL if user runs the server on a different port or domain
     btnSaveUrl.addEventListener("click", () => {
         const val = urlInput.value.trim() || "http://localhost:8000";
         chrome.storage.local.set({ "phantomproof_base_url": val }, () => {
@@ -44,23 +68,34 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // CLOSING & CROPPING
+    // --------------------------------------------------------------------------
+    // 3. SIDEBAR CLOSING & CROPPING TRIGGERS (Talking to content.js)
+    // --------------------------------------------------------------------------
+    // User clicks the close "X" button -> tell host page content.js to close sidebar
     btnClose.addEventListener("click", () => {
         window.parent.postMessage({ action: "close_sidebar" }, "*");
     });
 
+    // User clicks "Select Scan Area" -> tell host page content.js to start cropping overlay
     btnStartCrop.addEventListener("click", () => {
         btnStartCrop.textContent = "Select area on left...";
         window.parent.postMessage({ action: "start_crop" }, "*");
     });
 
+    // Retake button resets image container so user can take a fresh crop
     btnRetake.addEventListener("click", resetImageState);
 
+    // --------------------------------------------------------------------------
+    // 4. LISTENING FOR MESSAGES FROM PARENT (content.js)
+    // --------------------------------------------------------------------------
     window.addEventListener("message", (event) => {
         if (!event.data) return;
+        
+        // If user cancelled the crop box on the host page:
         if (event.data.action === "crop_cancelled") {
             btnStartCrop.textContent = "Select Scan Area";
         }
+        // If user finished cropping, content.js sends the cropped image dataUrl:
         else if (event.data.action === "snapshot_ready") {
             currentSnapshotDataUrl = event.data.dataUrl;
             imgSnapshot.src = currentSnapshotDataUrl;
@@ -68,11 +103,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 placeholderBox.style.display = "none";
                 snapshotBox.style.display = "flex";
                 btnStartCrop.textContent = "Select Scan Area";
-                btnAnalyze.disabled = false;
+                btnAnalyze.disabled = false; // Enable "Run Fraud Analysis" button
             };
         }
     });
 
+    // Resets UI back to the initial "capture placeholder" state
     function resetImageState() {
         currentSnapshotDataUrl = null;
         imgSnapshot.src = "";
@@ -84,9 +120,13 @@ document.addEventListener("DOMContentLoaded", () => {
         errorBox.style.display = "none";
     }
 
+    // --------------------------------------------------------------------------
+    // 5. RUN FRAUD ANALYSIS: Sends image to backend API
+    // --------------------------------------------------------------------------
     btnAnalyze.addEventListener("click", async () => {
         if (!currentSnapshotDataUrl) return;
 
+        // Show loading spinner
         btnAnalyze.disabled = true;
         document.getElementById("analyze-spinner").style.display = "block";
         document.getElementById("analyze-text").textContent = "ANALYZING...";
@@ -94,6 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
         resultContainer.innerHTML = "";
 
         try {
+            // Convert base64 data URL into a binary file for multipart form upload
             const blob = await (await fetch(currentSnapshotDataUrl)).blob();
             const file = new File([blob], "crop_scan.png", { type: "image/png" });
             const formData = new FormData();
@@ -102,11 +143,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const baseUrl = urlInput.value.trim() || "http://localhost:8000";
             
             if (currentMode === "fakenews") {
-                // Fake News Mode: Upload -> Analyze
+                // Fake News Workflow:
+                // Step A: Upload image to /upload/ to get file_id
                 let upRes = await fetch(baseUrl + "/upload/", { method: "POST", body: formData });
                 if (!upRes.ok) throw new Error(await getError(upRes));
                 let upData = await upRes.json();
                 
+                // Step B: Send file_id to /analyze/ to run OSINT fact-checking
                 let anRes = await fetch(baseUrl + "/analyze/", {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
@@ -116,7 +159,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 renderFakeNewsResult(await anRes.json());
                 
             } else {
-                // Payment or Deepfake Mode
+                // Payment Receipt or Deepfake Image Workflow:
+                // Calls either /scan/payment or /scan/image directly
                 const endpoint = currentMode === "payment" ? "/scan/payment" : "/scan/image";
                 let res = await fetch(baseUrl + endpoint, { method: "POST", body: formData });
                 if (!res.ok) throw new Error(await getError(res));
@@ -131,12 +175,14 @@ document.addEventListener("DOMContentLoaded", () => {
             errorBox.textContent = `Analysis failed: ${err.message}`;
             errorBox.style.display = "block";
         } finally {
+            // Restore button state
             btnAnalyze.disabled = false;
             document.getElementById("analyze-spinner").style.display = "none";
             document.getElementById("analyze-text").textContent = "RUN FRAUD ANALYSIS";
         }
     });
 
+    // Helper to safely extract error message from API response
     async function getError(res) {
         let text = await res.text();
         try {
@@ -145,8 +191,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch { return text; }
     }
 
-    // ========= RENDERERS =========
+    // --------------------------------------------------------------------------
+    // 6. RESULT CARD RENDERERS (Turns API JSON into formatted HTML)
+    // --------------------------------------------------------------------------
 
+    // Returns CSS class, badge text, and color for a given score
     function getVerdictUI(score, isFraudNews = false) {
         if (isFraudNews) {
             let s = String(score).toUpperCase();
@@ -155,12 +204,13 @@ document.addEventListener("DOMContentLoaded", () => {
             return { class: "suspicious", text: "⚠️ UNVERIFIED", color: "var(--yellow)" };
         }
         
-        // Deepfake / Payment numbers
+        // Deepfake / Payment numbers (0-30 = genuine, 31-60 = suspicious, 61-100 = fraud)
         if (score <= 30) return { class: "genuine", text: "✅ LIKELY GENUINE", color: "var(--green)" };
         if (score <= 60) return { class: "suspicious", text: "⚠️ SUSPICIOUS", color: "var(--yellow)" };
         return { class: "fraud", text: "🚨 LIKELY FRAUD", color: "var(--red)" };
     }
 
+    // Renders Payment Scan Result (UTR check, amount, bank, tampering flags)
     function renderPaymentResult(data) {
         const analysis = data.payment_analysis || data;
         const fraudScore = analysis.fraud_score || 0;
@@ -188,9 +238,10 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
     }
 
+    // Renders Deepfake / AI Image Result (AI confidence, ELA score, explanation)
     function renderDeepfakeResult(data) {
         const auth = data.confidence || data.authenticity_score || 0;
-        // deepfake relies on high authenticity = good. fraud score inverted.
+        // Authenticity 100% means 0% fake. Fraud/manipulation score is (100 - auth)
         const fakeScore = 100 - auth; 
         const v = getVerdictUI(fakeScore);
 
@@ -218,6 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
     }
 
+    // Renders Fake News / Misinformation Result (Extracted OCR text, matched fact-checkers)
     function renderFakeNewsResult(data) {
         const verdict = data.verdict || "UNVERIFIED";
         const v = getVerdictUI(verdict, true);
