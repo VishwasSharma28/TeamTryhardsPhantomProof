@@ -42,14 +42,16 @@ def _load_dataset() -> list[dict[str, Any]]:
     if _dataset_cache is not None:
         return _dataset_cache
 
-    dataset_path = os.path.join("data", "misinformation_cases.json")
+    dataset_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "data", "misinformation_cases.json")
+    )
     try:
         if not os.path.exists(dataset_path):
             print(f"⚠️  Timeline Engine dataset not found: {dataset_path}")
             _dataset_cache = []
             return _dataset_cache
             
-        with open(dataset_path, "r", encoding="utf-8") as f:
+        with open(dataset_path, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
             if isinstance(data, list):
                 _dataset_cache = data

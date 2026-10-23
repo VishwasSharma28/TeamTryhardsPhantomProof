@@ -99,9 +99,9 @@ def _get_classifier():
             model="openai/clip-vit-base-patch32",
             device=-1,  # CPU — safe for all environments
         )
-        print("✅ CLIP classifier loaded (openai/clip-vit-base-patch32)")
+        print("[clip_engine] CLIP classifier loaded (openai/clip-vit-base-patch32)")
     except Exception as exc:
-        print(f"⚠️  CLIP classifier failed to load: {exc}")
+        print(f"[clip_engine] CLIP classifier failed to load: {exc}")
         _classifier = None
     return _classifier
 
@@ -168,6 +168,6 @@ def classify_image(image_path: str) -> dict[str, Any]:
         }
 
     except Exception as exc:
-        print(f"⚠️  CLIP classify_image error: {exc}")
+        print(f"[clip_engine] CLIP classify_image error: {exc}")
         traceback.print_exc()
         return dict(_FALLBACK)

@@ -7,6 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from fastapi.responses import FileResponse
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 from limiter import limiter
@@ -23,7 +24,7 @@ _DEMO_CACHE_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "data", "demo_cache.json")
 )
 try:
-    with open(_DEMO_CACHE_PATH, "r", encoding="utf-8") as _f:
+    with open(_DEMO_CACHE_PATH, "r", encoding="utf-8-sig") as _f:
         DEMO_CACHE: dict = json.load(_f)
 except Exception as _e:
     print(f"[scan_routes] Warning: could not load demo_cache.json — {_e}")
@@ -156,6 +157,12 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
 async def scan_image(request: Request, lang: str = "en", file: UploadFile = File(...)):
     file_bytes = await file.read()
     filename = file.filename
+    # Run the CPU-heavy ML pipeline in a worker thread so the event loop
+    # stays responsive for other requests while a scan is in progress.
+    return await run_in_threadpool(_run_image_scan, file_bytes, filename, lang)
+
+
+def _run_image_scan(file_bytes: bytes, filename: str, lang: str) -> dict:
     supabase_client.save_file_locally(file_bytes, filename)
     
     # Run forensics

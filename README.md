@@ -1,7 +1,7 @@
 # PHANTOMPROOF.ai — The Reality Firewall
 
 <p align="center">
-  <img src="docs/assets/phantomproof-banner.png" alt="PhantomProof Banner" width="100%" />
+  <img src="D:\Bdget Buddy\TeamTryhardsPhantomProof\frontend\asset logo.png" alt="PhantomProof Banner" width="100%" />
 </p>
 
 <p align="center">

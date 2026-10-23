@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File
+from fastapi.concurrency import run_in_threadpool
 import os
 
 from models.payment_result import PaymentResult, PaymentAnalysis
@@ -16,6 +17,11 @@ async def scan_payment(file: UploadFile = File(...)):
     # Save image
     file_bytes = await file.read()
     filename = file.filename
+    # Run OCR + forensics in a worker thread so the event loop stays responsive.
+    return await run_in_threadpool(_run_payment_scan, file_bytes, filename)
+
+
+def _run_payment_scan(file_bytes: bytes, filename: str) -> PaymentResult:
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     image_path = os.path.join(UPLOAD_DIR, filename)
     with open(image_path, "wb") as f:
