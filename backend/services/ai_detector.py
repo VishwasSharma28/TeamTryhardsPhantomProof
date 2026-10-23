@@ -157,4 +157,4 @@ class RealAIDetector:
             }
 
 # Global singleton instance loaded once at backend startup
-detector = RealAIDetector()= RealAIDetector()
+detector = RealAIDetector()
